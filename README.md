@@ -110,6 +110,38 @@ Before you begin, ensure you have:
 
 ## Quick Start
 
+### Automated Setup (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/deepak2837/dynamous-kiro-hackathon.git
+cd dynamous-kiro-hackathon
+
+# Run automated setup
+./scripts/setup.sh
+
+# Configure environment variables
+cp backend/.env.example backend/.env
+# Edit backend/.env with your API keys
+
+# Start all services
+./scripts/start.sh
+```
+
+The application will be available at:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+
+To stop all services:
+```bash
+./scripts/stop.sh
+```
+
+### Manual Setup
+
+If you prefer manual setup or encounter issues with the automated script:
+
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/deepak2837/dynamous-kiro-hackathon.git
