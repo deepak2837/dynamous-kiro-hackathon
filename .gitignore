@@ -44,7 +44,7 @@ yarn-error.log*
 .next/
 out/
 build/
-
+google_service_account.json
 # Environment files
 .env
 .env.local
