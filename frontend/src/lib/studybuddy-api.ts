@@ -1,6 +1,7 @@
 import apiClient from './api';
 import {
   UploadResponse,
+  UploadRestrictionResponse,
   ProcessingStatusResponse,
   StudySession,
   SessionListResponse,
@@ -16,6 +17,11 @@ import {
 
 export class StudyBuddyAPI {
   // File Upload
+  static async checkUploadAllowed(userId: string): Promise<UploadRestrictionResponse> {
+    const response = await apiClient.get(`/upload/check-upload-allowed/${userId}`);
+    return response.data;
+  }
+
   static async uploadFiles(
     files: File[],
     processingMode: ProcessingMode,

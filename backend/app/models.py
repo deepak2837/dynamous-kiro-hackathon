@@ -25,11 +25,14 @@ class StudySession(BaseModel):
     user_id: str = Field(..., description="User identifier")
     session_name: str = Field(..., description="Auto-generated session name")
     files: List[str] = Field(default=[], description="List of uploaded file paths")
+    file_urls: List[str] = Field(default=[], description="List of file URLs (S3 or local)")
+    s3_keys: List[Optional[str]] = Field(default=[], description="List of S3 keys (None for local files)")
     processing_mode: ProcessingMode = Field(..., description="Processing mode used")
     status: SessionStatus = Field(default=SessionStatus.PENDING, description="Current status")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
     error_message: Optional[str] = None
+    last_upload_time: Optional[datetime] = Field(default_factory=datetime.utcnow, description="Last upload timestamp")
 
 class Question(BaseModel):
     question_id: str = Field(..., description="Unique question identifier")

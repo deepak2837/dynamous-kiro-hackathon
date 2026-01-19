@@ -1,151 +1,179 @@
 ---
-description: Create a Product Requirements Document from conversation
+description: Create a Product Requirements Document for Study Buddy App features
 argument-hint: [output-filename]
 ---
 
-# Create PRD: Generate Product Requirements Document
+# Create PRD: Generate Product Requirements Document for Study Buddy App
+
+## Study Buddy App Context
+
+**Project**: AI-powered study companion for medical students (MBBS-oriented)
+**Status**: Complete implementation (FastAPI backend + Next.js frontend)
+**Hackathon**: Dynamous Kiro Hackathon 2026 (Jan 5-23)
+**Integration**: Future MedGloss platform integration
 
 ## Overview
 
-Generate a comprehensive Product Requirements Document (PRD) based on the current conversation context and requirements discussed. Use the structure and sections defined below to create a thorough, professional PRD.
+Generate a comprehensive Product Requirements Document (PRD) for Study Buddy App features based on the current conversation context and medical education requirements.
 
 ## Output File
 
-Write the PRD to: `$ARGUMENTS` (default: `PRD.md`)
+Write the PRD to: `$ARGUMENTS` (default: `StudyBuddy-PRD.md`)
 
-## PRD Structure
+## PRD Structure for Study Buddy App
 
-Create a well-structured PRD with the following sections. Adapt depth and detail based on available information:
+Create a medical education-focused PRD with the following sections:
 
 ### Required Sections
 
 **1. Executive Summary**
-- Concise product overview (2-3 paragraphs)
-- Core value proposition
-- MVP goal statement
+- Medical education problem being solved
+- AI-powered solution overview
+- MBBS student value proposition
+- Hackathon and integration goals
 
-**2. Mission**
-- Product mission statement
-- Core principles (3-5 key principles)
+**2. Medical Education Mission**
+- Study Buddy mission for medical students
+- Core principles for medical content generation
+- India-specific medical education focus
 
-**3. Target Users**
-- Primary user personas
-- Technical comfort level
-- Key user needs and pain points
+**3. Target Medical Students**
+- MBBS student personas
+- Medical exam preparation needs (NEET, AIIMS, etc.)
+- Study patterns and pain points
+- Technology comfort level
 
-**4. MVP Scope**
-- **In Scope:** Core functionality for MVP (use ✅ checkboxes)
+**4. Study Buddy MVP Scope**
+- **In Scope:** Medical features for MVP (use ✅ checkboxes)
+  - Multi-format upload (PDF, images, PPTX, videos)
+  - AI content generation (Questions, Tests, Mnemonics, Sheets, Notes)
+  - Session management and processing status
+  - Medical content quality and India-specific features
 - **Out of Scope:** Features deferred to future phases (use ❌ checkboxes)
-- Group by categories (Core Functionality, Technical, Integration, Deployment)
+  - Collaborative study sessions
+  - Advanced analytics
+  - Mobile application
 
-**5. User Stories**
-- Primary user stories (5-8 stories) in format: "As a [user], I want to [action], so that [benefit]"
-- Include concrete examples for each story
-- Add technical user stories if relevant
+**5. Medical Student User Stories**
+- Primary user stories for MBBS preparation (5-8 stories)
+- Format: "As a medical student preparing for [exam], I want to [action], so that [medical education benefit]"
+- Include concrete medical education examples
+- Technical user stories for integration
 
-**6. Core Architecture & Patterns**
-- High-level architecture approach
-- Directory structure (if applicable)
-- Key design patterns and principles
-- Technology-specific patterns
+**6. Study Buddy Architecture & Patterns**
+- Microservices architecture (FastAPI + Next.js)
+- Session-based data organization
+- AI processing pipeline patterns
+- Medical content generation patterns
+- Database schema for medical content
 
-**7. Tools/Features**
-- Detailed feature specifications
-- If building an agent: Tool designs with purpose, operations, and key features
-- If building an app: Core feature breakdown
+**7. Medical Education Features**
+- **Question Generation**: MBBS-oriented MCQs with difficulty classification
+- **Mock Tests**: Timed tests with medical exam formats
+- **Mnemonics**: India-specific medical mnemonics
+- **Cheat Sheets**: High-yield medical topics
+- **Notes**: Compiled medical study materials
+- **Processing Modes**: Default, OCR, AI-based for medical content
 
-**8. Technology Stack**
-- Backend/Frontend technologies with versions
-- Dependencies and libraries
-- Optional dependencies
-- Third-party integrations
+**8. Study Buddy Technology Stack**
+- **Backend**: FastAPI, MongoDB, Celery, Redis, Google GenAI
+- **Frontend**: Next.js 14, TypeScript, TailwindCSS
+- **Medical AI**: Google GenAI with medical prompts
+- **Integration**: MedGloss authentication, OCR scripts
 
-**9. Security & Configuration**
-- Authentication/authorization approach
-- Configuration management (environment variables, settings)
-- Security scope (in-scope and out-of-scope)
-- Deployment considerations
+**9. Medical Content Security & Configuration**
+- Medical data handling standards
+- User-specific medical content isolation
+- Session-based security model
+- Environment configuration for medical AI
+- File validation for medical documents
 
-**10. API Specification** (if applicable)
-- Endpoint definitions
-- Request/response formats
-- Authentication requirements
-- Example payloads
+**10. Study Buddy API Specification**
+- Medical content upload endpoints
+- Processing status endpoints
+- Medical content retrieval endpoints
+- Authentication integration (MedGloss JWT)
+- Medical content download endpoints
 
-**11. Success Criteria**
-- MVP success definition
-- Functional requirements (use ✅ checkboxes)
-- Quality indicators
-- User experience goals
+**11. Medical Education Success Criteria**
+- MBBS student engagement metrics
+- Medical content quality standards (>90% accuracy)
+- Processing efficiency for medical documents
+- India-specific content relevance
+- Medical exam preparation effectiveness
 
-**12. Implementation Phases**
-- Break down into 3-4 phases
-- Each phase includes: Goal, Deliverables (✅ checkboxes), Validation criteria
-- Realistic timeline estimates
+**12. Study Buddy Implementation Phases**
+- **Phase 1**: Core medical content generation (Complete)
+- **Phase 2**: MedGloss integration and testing
+- **Phase 3**: Medical content optimization
+- **Phase 4**: Advanced medical features
 
-**13. Future Considerations**
-- Post-MVP enhancements
-- Integration opportunities
-- Advanced features for later phases
+**13. Medical Education Future Considerations**
+- Collaborative medical study sessions
+- Medical learning progress analytics
+- Advanced medical AI models
+- Mobile app for medical students
+- Multi-language medical content
 
-**14. Risks & Mitigations**
-- 3-5 key risks with specific mitigation strategies
+**14. Medical Education Risks & Mitigations**
+- Medical content accuracy concerns → Quality validation systems
+- Processing time for large medical documents → Async processing
+- Medical terminology complexity → India-specific prompts
+- Integration complexity → Phased approach
 
-**15. Appendix** (if applicable)
-- Related documents
-- Key dependencies with links
-- Repository/project structure
+**15. Study Buddy Appendix**
+- MedGloss integration requirements
+- Medical OCR scripts location
+- Medical education compliance standards
+- Repository structure and documentation
 
-## Instructions
+## Medical Education Instructions
 
-### 1. Extract Requirements
-- Review the entire conversation history
-- Identify explicit requirements and implicit needs
-- Note technical constraints and preferences
-- Capture user goals and success criteria
+### 1. Extract Medical Requirements
+- Review medical education needs from conversation
+- Identify MBBS-specific requirements
+- Note medical content quality standards
+- Capture medical student success criteria
 
-### 2. Synthesize Information
-- Organize requirements into appropriate sections
-- Fill in reasonable assumptions where details are missing
-- Maintain consistency across sections
-- Ensure technical feasibility
+### 2. Synthesize Medical Information
+- Organize requirements for medical education context
+- Fill in medical education assumptions
+- Ensure medical content accuracy standards
+- Maintain MBBS curriculum alignment
 
-### 3. Write the PRD
-- Use clear, professional language
-- Include concrete examples and specifics
-- Use markdown formatting (headings, lists, code blocks, checkboxes)
-- Add code snippets for technical sections where helpful
-- Keep Executive Summary concise but comprehensive
+### 3. Write Medical Education PRD
+- Use medical education terminology
+- Include concrete medical examples
+- Focus on MBBS exam preparation value
+- Emphasize India-specific medical content
 
-### 4. Quality Checks
-- ✅ All required sections present
-- ✅ User stories have clear benefits
-- ✅ MVP scope is realistic and well-defined
-- ✅ Technology choices are justified
-- ✅ Implementation phases are actionable
-- ✅ Success criteria are measurable
-- ✅ Consistent terminology throughout
+### 4. Medical Quality Checks
+- ✅ Medical education focus throughout
+- ✅ MBBS student needs addressed
+- ✅ Medical content quality standards defined
+- ✅ India-specific medical features included
+- ✅ Medical exam preparation value clear
+- ✅ Integration with medical platform planned
 
-## Style Guidelines
+## Medical Education Style Guidelines
 
-- **Tone:** Professional, clear, action-oriented
-- **Format:** Use markdown extensively (headings, lists, code blocks, tables)
-- **Checkboxes:** Use ✅ for in-scope items, ❌ for out-of-scope
-- **Specificity:** Prefer concrete examples over abstract descriptions
-- **Length:** Comprehensive but scannable (typically 30-60 sections worth of content)
+- **Tone:** Professional medical education focus
+- **Medical Context:** MBBS curriculum alignment
+- **India Focus:** India-specific medical terminology and examples
+- **Quality:** Medical content accuracy standards
+- **Integration:** MedGloss platform compatibility
 
-## Output Confirmation
+## Study Buddy Output Confirmation
 
-After creating the PRD:
-1. Confirm the file path where it was written
-2. Provide a brief summary of the PRD contents
-3. Highlight any assumptions made due to missing information
-4. Suggest next steps (e.g., review, refinement, planning)
+After creating the medical education PRD:
+1. Confirm medical education focus and MBBS alignment
+2. Highlight medical content quality standards
+3. Note India-specific medical features
+4. Suggest medical education validation steps
 
-## Notes
+## Medical Education Notes
 
-- If critical information is missing, ask clarifying questions before generating
-- Adapt section depth based on available details
-- For highly technical products, emphasize architecture and technical stack
-- For user-facing products, emphasize user stories and experience
-- This command contains the complete PRD template structure - no external references needed
+- Prioritize medical content accuracy and MBBS relevance
+- Ensure India-specific medical education context
+- Consider medical exam preparation effectiveness
+- Plan for medical platform integration requirements

@@ -8,6 +8,7 @@ from app.models import ProcessingMode, SessionStatus, Question, MockTest, Mnemon
 from app.database import get_database
 from app.services.ai_service import AIService
 from app.services.file_processor import FileProcessor
+from app.services.s3_service import s3_service
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +27,17 @@ class ProcessingService:
                 {"$set": {"status": SessionStatus.PROCESSING}}
             )
             
+            # Get session data to check for S3 keys
+            session_data = await db.study_sessions.find_one({"session_id": session_id})
+            if not session_data:
+                raise Exception("Session not found")
+            
             # Process files and extract text
-            extracted_text = await self._extract_text_from_files(files, mode)
+            extracted_text = await self._extract_text_from_files(
+                files, 
+                mode, 
+                session_data.get("s3_keys", [])
+            )
             
             if not extracted_text.strip():
                 raise Exception("No text could be extracted from the uploaded files")
@@ -67,21 +77,41 @@ class ProcessingService:
                 }
             )
     
-    async def _extract_text_from_files(self, files: List[str], mode: ProcessingMode) -> str:
+    async def _extract_text_from_files(self, files: List[str], mode: ProcessingMode, s3_keys: List[str] = None) -> str:
         """Extract text from uploaded files based on processing mode"""
         all_text = []
+        s3_keys = s3_keys or []
         
-        for file_path in files:
+        for i, file_path in enumerate(files):
             try:
+                # Get corresponding S3 key if available
+                s3_key = s3_keys[i] if i < len(s3_keys) else None
+                
+                # If S3 key exists, download file for processing
+                if s3_key and s3_service.is_s3_enabled():
+                    # Create temporary local path
+                    temp_filename = os.path.basename(file_path)
+                    temp_path = os.path.join("/tmp", f"processing_{temp_filename}")
+                    
+                    # Download from S3
+                    local_file_path = await s3_service.download_file_for_processing(s3_key, temp_path)
+                else:
+                    local_file_path = file_path
+                
+                # Extract text based on mode
                 if mode == ProcessingMode.DEFAULT:
-                    text = await self.file_processor.extract_text_default(file_path)
+                    text = await self.file_processor.extract_text_default(local_file_path)
                 elif mode == ProcessingMode.OCR:
-                    text = await self.file_processor.extract_text_ocr(file_path)
+                    text = await self.file_processor.extract_text_ocr(local_file_path)
                 else:  # AI_BASED
-                    text = await self.file_processor.extract_text_ai(file_path)
+                    text = await self.file_processor.extract_text_ai(local_file_path)
                 
                 if text:
                     all_text.append(text)
+                
+                # Clean up temporary file if it was downloaded from S3
+                if s3_key and s3_service.is_s3_enabled() and os.path.exists(local_file_path):
+                    os.remove(local_file_path)
                     
             except Exception as e:
                 logger.warning(f"Failed to process file {file_path}: {str(e)}")

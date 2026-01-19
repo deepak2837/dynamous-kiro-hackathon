@@ -1,0 +1,25 @@
+{
+  "enabled": true,
+  "name": "Auto Documentation Updater",
+  "description": "Listens to changes in Python and TypeScript source files, as well as configuration files, and asks the agent to update documentation in README.md or the /docs folder to reflect the changes. If comprehensive documentation doesn't exist yet, it will be created incrementally.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "*.py",
+      "*.ts",
+      "*.tsx",
+      "*.js",
+      "*.jsx",
+      "package.json",
+      "requirements.txt",
+      "*.config.js",
+      "*.config.ts",
+      ".env.example"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A source file has been modified. Please review the changes and update the documentation accordingly:\n\n1. If this is a new feature or significant change, update the README.md with relevant information\n2. If there's a /docs folder, update or create appropriate documentation files there\n3. If comprehensive documentation for this code doesn't exist yet, create it incrementally\n4. Ensure the documentation reflects the current state of the codebase\n5. Update API documentation if endpoints or interfaces changed\n6. Update setup/configuration docs if dependencies or environment variables changed\n\nFocus on keeping documentation accurate, clear, and helpful for developers working with this codebase."
+  }
+}

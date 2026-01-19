@@ -5,6 +5,16 @@ export interface UploadResponse {
   files_uploaded: number;
 }
 
+export interface UploadRestrictionResponse {
+  upload_allowed: boolean;
+  message?: string;
+  remaining_seconds?: number;
+  restriction_settings: {
+    enabled: boolean;
+    cooldown_minutes: number;
+  };
+}
+
 export interface ProcessingStatusResponse {
   session_id: string;
   status: SessionStatus;

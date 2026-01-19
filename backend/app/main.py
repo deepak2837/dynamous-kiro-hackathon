@@ -7,6 +7,7 @@ import os
 from app.config import settings
 from app.database import connect_to_mongo, close_mongo_connection
 from app.api.v1.api import api_router
+from app.api.auth import router as auth_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -46,6 +47,7 @@ app.add_middleware(
 )
 
 # Include API routes
+app.include_router(auth_router)  # Auth routes (no prefix for compatibility)
 app.include_router(api_router, prefix=settings.api_v1_str)
 
 @app.get("/")

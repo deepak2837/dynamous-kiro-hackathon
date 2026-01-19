@@ -1,8 +1,45 @@
+"use client";
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { FiUser, FiLogOut } from 'react-icons/fi';
 
 export default function HomePage() {
+  const { user, logout, isLoading } = useAuth();
+  const router = useRouter();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
+      {/* User Info Bar */}
+      {user && (
+        <div className="bg-white rounded-lg shadow-sm border p-4 flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <FiUser className="h-8 w-8 text-indigo-600" />
+            <div>
+              <h3 className="font-semibold text-gray-900">Welcome back, {user.name}!</h3>
+              <p className="text-sm text-gray-600">
+                {user.role === 'student' ? `${user.course} - ${user.college_name}` : `${user.speciality} - ${user.hospital_name}`}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            className="flex items-center space-x-2 text-gray-600 hover:text-red-600 transition-colors"
+          >
+            <FiLogOut className="h-5 w-5" />
+            <span>Logout</span>
+          </button>
+        </div>
+      )}
+
       {/* Hero Section */}
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
@@ -13,18 +50,30 @@ export default function HomePage() {
           Upload PDFs, images, slides, and videos to generate question banks, 
           mock tests, mnemonics, cheat sheets, and notes.
         </p>
-        <Link 
-          href="/study-buddy" 
-          className="btn-primary text-lg px-8 py-3 inline-block mr-4"
-        >
-          Start Studying 🚀
-        </Link>
-        <Link 
-          href="/auth" 
-          className="btn-secondary text-lg px-8 py-3 inline-block"
-        >
-          Login / Register
-        </Link>
+        
+        {user ? (
+          <Link 
+            href="/study-buddy" 
+            className="btn-primary text-lg px-8 py-3 inline-block"
+          >
+            Start Studying 🚀
+          </Link>
+        ) : (
+          <div className="space-x-4">
+            <Link 
+              href="/login" 
+              className="btn-primary text-lg px-8 py-3 inline-block"
+            >
+              Login
+            </Link>
+            <Link 
+              href="/register" 
+              className="btn-secondary text-lg px-8 py-3 inline-block"
+            >
+              Register
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Features Grid */}
@@ -121,12 +170,21 @@ export default function HomePage() {
         <p className="text-gray-600 mb-6">
           Join thousands of medical students who are studying smarter with AI.
         </p>
-        <Link 
-          href="/study-buddy" 
-          className="btn-primary text-lg px-8 py-3 inline-block"
-        >
-          Get Started Now
-        </Link>
+        {user ? (
+          <Link 
+            href="/study-buddy" 
+            className="btn-primary text-lg px-8 py-3 inline-block"
+          >
+            Get Started Now
+          </Link>
+        ) : (
+          <Link 
+            href="/register" 
+            className="btn-primary text-lg px-8 py-3 inline-block"
+          >
+            Create Account
+          </Link>
+        )}
       </div>
     </div>
   );

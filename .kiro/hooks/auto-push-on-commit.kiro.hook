@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Auto Push on Commit",
+  "description": "Automatically pushes code to the remote repository whenever a commit happens",
+  "version": "1",
+  "when": {
+    "type": "promptSubmit"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "git push"
+  }
+}

@@ -24,6 +24,21 @@ class Settings(BaseSettings):
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
     jwt_expiry: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")) * 60  # Convert to seconds
     
+    # OTP Service Configuration
+    default_otp_method: str = os.getenv("DEFAULT_OTP_METHOD", "sms")  # "sms" or "email"
+    
+    # SMS Service (Fast2SMS)
+    fast2sms_api_key: str = os.getenv("FAST2SMS_API_KEY", "")
+    
+    # Email Service (SMTP)
+    smtp_server: str = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
+    smtp_username: str = os.getenv("SMTP_USERNAME", "")
+    smtp_password: str = os.getenv("SMTP_PASSWORD", "")
+    
+    # Gmail API (Alternative to SMTP)
+    gmail_api_key: str = os.getenv("GMAIL_API_KEY", "")
+    
     # File Storage
     upload_dir: str = os.getenv("UPLOAD_DIR", "./uploads")
     max_file_size: int = 52428800  # 50MB
@@ -39,6 +54,50 @@ class Settings(BaseSettings):
     project_name: str = "StudyBuddy"
     version: str = "1.0.0"
     description: str = "AI-powered study companion for medical students"
+    
+    # Upload Restrictions
+    restrict_upload_timing: bool = os.getenv("RESTRICT_UPLOAD_TIMING", "true").lower() == "true"
+    upload_cooldown_minutes: int = int(os.getenv("UPLOAD_COOLDOWN_MINUTES", "5"))
+    
+    # AWS S3 Configuration
+    aws_access_key_id: str = os.getenv("AWS_ACCESS_KEY_ID", "")
+    aws_secret_access_key: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    aws_region: str = os.getenv("AWS_REGION", "ap-south-1")
+    study_buddy_bucket_name: str = os.getenv("STUDY_BUDDY_BUCKET_NAME", "study-buddy-crud-bucket")
+    storage_mode: str = os.getenv("STORAGE", "LOCAL").upper()
+    
+    # Legacy compatibility properties
+    @property
+    def JWT_SECRET(self):
+        return self.jwt_secret
+    
+    @property
+    def JWT_ALGORITHM(self):
+        return self.jwt_algorithm
+    
+    @property
+    def FAST2SMS_API_KEY(self):
+        return self.fast2sms_api_key
+    
+    @property
+    def SMTP_SERVER(self):
+        return self.smtp_server
+    
+    @property
+    def SMTP_PORT(self):
+        return self.smtp_port
+    
+    @property
+    def SMTP_USERNAME(self):
+        return self.smtp_username
+    
+    @property
+    def SMTP_PASSWORD(self):
+        return self.smtp_password
+    
+    @property
+    def DEFAULT_OTP_METHOD(self):
+        return self.default_otp_method
     
     class Config:
         env_file = ".env"

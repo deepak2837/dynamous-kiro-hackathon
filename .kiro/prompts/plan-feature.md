@@ -1,433 +1,307 @@
 ---
-description: "Create comprehensive feature plan with deep codebase analysis and research"
+description: "Create comprehensive feature plan for Study Buddy App with deep codebase analysis"
 ---
 
-# Plan a new task
+# Plan Study Buddy App Feature
 
 ## Feature: $ARGUMENTS
 
 ## Mission
 
-Transform a feature request into a **comprehensive implementation plan** through systematic codebase analysis, external research, and strategic planning.
+Transform a feature request into a **comprehensive implementation plan** for the Study Buddy App - an AI-powered study companion for medical students.
 
-**Core Principle**: We do NOT write code in this phase. Our goal is to create a context-rich implementation plan that enables one-pass implementation success for ai agents.
+**Project Context**: 
+- ✅ Complete FastAPI backend + Next.js frontend implementation
+- 🎯 Medical education focus (MBBS-oriented)
+- 🏆 Dynamous Kiro Hackathon 2026 submission
+- 🔗 Future MedGloss platform integration
 
-**Key Philosophy**: Context is King. The plan must contain ALL information needed for implementation - patterns, mandatory reading, documentation, validation commands - so the execution agent succeeds on the first attempt.
+**Core Principle**: We do NOT write code in this phase. Our goal is to create a context-rich implementation plan that enables one-pass implementation success.
+
+## Study Buddy App Architecture
+
+### Backend (FastAPI)
+- **Models**: 6 collections (study_sessions, questions, mock_tests, mnemonics, cheat_sheets, notes)
+- **Services**: AI processor, file processor, OCR service, export service
+- **API**: Upload, process, results endpoints
+- **Tech**: Python 3.10+, MongoDB (Motor), Pydantic, Celery + Redis
+
+### Frontend (Next.js)
+- **Pages**: App router with study-buddy routes
+- **Components**: Upload, processing status, results viewers
+- **Tech**: Next.js 14, TypeScript, TailwindCSS, Axios
+
+### Key Features Implemented
+- Multi-format upload (PDF, images, PPTX, video links)
+- Three processing modes (Default, OCR, AI-based)
+- AI content generation (Questions, Tests, Mnemonics, Sheets, Notes)
+- Session management with real-time status
+- Comprehensive results viewer
 
 ## Planning Process
 
 ### Phase 1: Feature Understanding
 
 **Deep Feature Analysis:**
+- Extract the core problem being solved for medical students
+- Identify user value for MBBS exam preparation
+- Determine feature type: New Capability/Enhancement/Integration/Bug Fix
+- Assess complexity considering existing Study Buddy implementation
+- Map affected systems (backend services, frontend components, AI processing)
 
-- Extract the core problem being solved
-- Identify user value and business impact
-- Determine feature type: New Capability/Enhancement/Refactor/Bug Fix
-- Assess complexity: Low/Medium/High
-- Map affected systems and components
+**Medical Education Context:**
+- Consider MBBS curriculum requirements
+- Ensure India-specific content relevance
+- Validate against medical exam preparation needs
 
-**Create User Story Format Or Refine If Story Was Provided By The User:**
+### Phase 2: Study Buddy Codebase Intelligence
 
-```
-As a <type of user>
-I want to <action/goal>
-So that <benefit/value>
-```
+**1. Existing Implementation Analysis**
 
-### Phase 2: Codebase Intelligence Gathering
+Read key files to understand current patterns:
+- `backend/app/main.py` - FastAPI app structure
+- `backend/app/models/` - Database schema patterns
+- `backend/app/services/ai_processor.py` - AI integration patterns
+- `frontend/src/components/` - React component patterns
+- `frontend/src/lib/api.ts` - API client patterns
 
-**Use specialized agents and parallel analysis:**
+**2. Pattern Recognition**
 
-**1. Project Structure Analysis**
+Study Buddy specific patterns:
+- Session-based data organization
+- Async processing with status updates
+- Medical content generation prompts
+- File upload and validation
+- Results viewer component structure
+- TypeScript type definitions
 
-- Detect primary language(s), frameworks, and runtime versions
-- Map directory structure and architectural patterns
-- Identify service/component boundaries and integration points
-- Locate configuration files (pyproject.toml, package.json, etc.)
-- Find environment setup and build processes
+**3. Integration Points**
 
-**2. Pattern Recognition** (Use specialized subagents when beneficial)
+Identify how feature integrates with:
+- Existing API endpoints (`/api/v1/upload`, `/api/v1/process`, etc.)
+- Database models (session, question, mnemonic, etc.)
+- AI service integration
+- Frontend component hierarchy
+- Authentication system (future MedGloss integration)
 
-- Search for similar implementations in codebase
-- Identify coding conventions:
-  - Naming patterns (CamelCase, snake_case, kebab-case)
-  - File organization and module structure
-  - Error handling approaches
-  - Logging patterns and standards
-- Extract common patterns for the feature's domain
-- Document anti-patterns to avoid
-- Check project-specific rules and conventions in steering documents
+### Phase 3: Medical Education Research
 
-**3. Dependency Analysis**
+**Educational Requirements:**
+- Research MBBS curriculum alignment
+- Understand medical exam formats (NEET, AIIMS, etc.)
+- Identify India-specific medical education needs
+- Review medical content generation best practices
 
-- Catalog external libraries relevant to feature
-- Understand how libraries are integrated (check imports, configs)
-- Find relevant documentation in docs/, ai_docs/, .agents/reference or ai-wiki if available
-- Note library versions and compatibility requirements
+**AI Content Research:**
+- Medical question generation patterns
+- Mnemonic creation for medical concepts
+- Cheat sheet formats for medical topics
+- Mock test structures for medical exams
 
-**4. Testing Patterns**
+### Phase 4: Implementation Strategy
 
-- Identify test framework and structure (pytest, jest, etc.)
-- Find similar test examples for reference
-- Understand test organization (unit vs integration)
-- Note coverage requirements and testing standards
+**Study Buddy Specific Considerations:**
+- Maintain session-based architecture
+- Follow existing AI prompt patterns
+- Preserve medical content quality
+- Ensure scalable processing pipeline
+- Maintain responsive UI patterns
 
-**5. Integration Points**
-
-- Identify existing files that need updates
-- Determine new files that need creation and their locations
-- Map router/API registration patterns
-- Understand database/model patterns if applicable
-- Identify authentication/authorization patterns if relevant
-
-**Clarify Ambiguities:**
-
-- If requirements are unclear at this point, ask the user to clarify before you continue
-- Get specific implementation preferences (libraries, approaches, patterns)
-- Resolve architectural decisions before proceeding
-
-### Phase 3: External Research & Documentation
-
-**Use specialized subagents when beneficial for external research:**
-
-**Documentation Gathering:**
-
-- Research latest library versions and best practices
-- Find official documentation with specific section anchors
-- Locate implementation examples and tutorials
-- Identify common gotchas and known issues
-- Check for breaking changes and migration guides
-
-**Technology Trends:**
-
-- Research current best practices for the technology stack
-- Find relevant blog posts, guides, or case studies
-- Identify performance optimization patterns
-- Document security considerations
-
-**Compile Research References:**
-
-```markdown
-## Relevant Documentation
-
-- [Library Official Docs](https://example.com/docs#section)
-  - Specific feature implementation guide
-  - Why: Needed for X functionality
-- [Framework Guide](https://example.com/guide#integration)
-  - Integration patterns section
-  - Why: Shows how to connect components
-```
-
-### Phase 4: Deep Strategic Thinking
-
-**Think Harder About:**
-
-- How does this feature fit into the existing architecture?
-- What are the critical dependencies and order of operations?
-- What could go wrong? (Edge cases, race conditions, errors)
-- How will this be tested comprehensively?
-- What performance implications exist?
-- Are there security considerations?
-- How maintainable is this approach?
-
-**Design Decisions:**
-
-- Choose between alternative approaches with clear rationale
-- Design for extensibility and future modifications
-- Plan for backward compatibility if needed
-- Consider scalability implications
-
-### Phase 5: Plan Structure Generation
-
-**Create comprehensive plan with the following structure:**
-
-Whats below here is a template for you to fill for th4e implementation agent:
+## Plan Structure Template
 
 ```markdown
 # Feature: <feature-name>
 
-The following plan should be complete, but its important that you validate documentation and codebase patterns and task sanity before you start implementing.
-
-Pay special attention to naming of existing utils types and models. Import from the right files etc.
-
 ## Feature Description
-
-<Detailed description of the feature, its purpose, and value to users>
+<Medical education focused description>
 
 ## User Story
-
-As a <type of user>
+As a medical student preparing for MBBS exams
 I want to <action/goal>
-So that <benefit/value>
+So that <benefit for medical exam preparation>
 
-## Problem Statement
-
-<Clearly define the specific problem or opportunity this feature addresses>
-
-## Solution Statement
-
-<Describe the proposed solution approach and how it solves the problem>
-
-## Feature Metadata
-
-**Feature Type**: [New Capability/Enhancement/Refactor/Bug Fix]
-**Estimated Complexity**: [Low/Medium/High]
-**Primary Systems Affected**: [List of main components/services]
-**Dependencies**: [External libraries or services required]
+## Study Buddy Integration
+**Affected Components**: [Backend services, Frontend components, Database models]
+**Processing Pipeline Impact**: [How feature affects upload → process → results flow]
+**Medical Content Impact**: [How feature enhances medical study materials]
 
 ---
 
 ## CONTEXT REFERENCES
 
-### Relevant Codebase Files IMPORTANT: YOU MUST READ THESE FILES BEFORE IMPLEMENTING!
+### Study Buddy Codebase Files (MUST READ)
+- `backend/app/models/session.py` - Session model pattern
+- `backend/app/services/ai_processor.py` - AI integration pattern
+- `frontend/src/components/UploadSection.tsx` - Upload UI pattern
+- `frontend/src/components/ResultsViewer.tsx` - Results display pattern
+- `frontend/src/types/index.ts` - TypeScript definitions
 
-<List files with line numbers and relevance>
+### Medical Education Patterns
+- Question generation prompts for medical content
+- Mnemonic creation for medical concepts
+- India-specific medical terminology
+- MBBS exam format requirements
 
-- `path/to/file.py` (lines 15-45) - Why: Contains pattern for X that we'll mirror
-- `path/to/model.py` (lines 100-120) - Why: Database model structure to follow
-- `path/to/test.py` - Why: Test pattern example
+### Existing API Patterns
+```typescript
+// API client pattern from frontend/src/lib/api.ts
+const response = await axios.post('/api/v1/endpoint', data)
+```
 
-### New Files to Create
-
-- `path/to/new_service.py` - Service implementation for X functionality
-- `path/to/new_model.py` - Data model for Y resource
-- `tests/path/to/test_new_service.py` - Unit tests for new service
-
-### Relevant Documentation YOU SHOULD READ THESE BEFORE IMPLEMENTING!
-
-- [Documentation Link 1](https://example.com/doc1#section)
-  - Specific section: Authentication setup
-  - Why: Required for implementing secure endpoints
-- [Documentation Link 2](https://example.com/doc2#integration)
-  - Specific section: Database integration
-  - Why: Shows proper async database patterns
-
-### Patterns to Follow
-
-<Specific patterns extracted from codebase - include actual code examples from the project>
-
-**Naming Conventions:** (for example)
-
-**Error Handling:** (for example)
-
-**Logging Pattern:** (for example)
-
-**Other Relevant Patterns:** (for example)
+```python
+# FastAPI endpoint pattern from backend/app/api/
+@router.post("/endpoint")
+async def endpoint(data: Schema, user_id: str = Depends(get_current_user)):
+```
 
 ---
 
 ## IMPLEMENTATION PLAN
 
-### Phase 1: Foundation
+### Phase 1: Backend Integration
+- Update database models if needed
+- Extend AI service for new content type
+- Add API endpoints following existing patterns
+- Implement processing logic
 
-<Describe foundational work needed before main implementation>
+### Phase 2: Frontend Integration  
+- Create/update React components
+- Extend results viewer for new content
+- Update TypeScript types
+- Integrate with existing upload flow
 
-**Tasks:**
-
-- Set up base structures (schemas, types, interfaces)
-- Configure necessary dependencies
-- Create foundational utilities or helpers
-
-### Phase 2: Core Implementation
-
-<Describe the main implementation work>
-
-**Tasks:**
-
-- Implement core business logic
-- Create service layer components
-- Add API endpoints or interfaces
-- Implement data models
-
-### Phase 3: Integration
-
-<Describe how feature integrates with existing functionality>
-
-**Tasks:**
-
-- Connect to existing routers/handlers
-- Register new components
-- Update configuration files
-- Add middleware or interceptors if needed
-
-### Phase 4: Testing & Validation
-
-<Describe testing approach>
-
-**Tasks:**
-
-- Implement unit tests for each component
-- Create integration tests for feature workflow
-- Add edge case tests
-- Validate against acceptance criteria
+### Phase 3: Medical Content Enhancement
+- Implement medical-specific logic
+- Add India-specific content features
+- Ensure MBBS curriculum alignment
+- Validate content quality
 
 ---
 
 ## STEP-BY-STEP TASKS
 
-IMPORTANT: Execute every task in order, top to bottom. Each task is atomic and independently testable.
+### Backend Tasks
 
-### Task Format Guidelines
+#### UPDATE backend/app/models/{model}.py
+- **IMPLEMENT**: New fields for medical content
+- **PATTERN**: Follow existing Pydantic model structure
+- **IMPORTS**: `from pydantic import BaseModel, Field`
+- **VALIDATE**: `python -c "from app.models.{model} import {Model}"`
 
-Use information-dense keywords for clarity:
+#### UPDATE backend/app/services/ai_processor.py  
+- **IMPLEMENT**: New AI generation method
+- **PATTERN**: Follow existing `generate_questions` pattern
+- **MEDICAL**: Include India-specific medical prompts
+- **VALIDATE**: `python -m pytest tests/test_ai_processor.py`
 
-- **CREATE**: New files or components
-- **UPDATE**: Modify existing files
-- **ADD**: Insert new functionality into existing code
-- **REMOVE**: Delete deprecated code
-- **REFACTOR**: Restructure without changing behavior
-- **MIRROR**: Copy pattern from elsewhere in codebase
+### Frontend Tasks
 
-### {ACTION} {target_file}
+#### UPDATE frontend/src/components/ResultsViewer.tsx
+- **IMPLEMENT**: New tab for feature content
+- **PATTERN**: Follow existing tabbed interface structure
+- **IMPORTS**: Existing UI components from `./ui/`
+- **VALIDATE**: `npm run build`
 
-- **IMPLEMENT**: {Specific implementation detail}
-- **PATTERN**: {Reference to existing pattern - file:line}
-- **IMPORTS**: {Required imports and dependencies}
-- **GOTCHA**: {Known issues or constraints to avoid}
-- **VALIDATE**: `{executable validation command}`
-
-<Continue with all tasks in dependency order...>
+#### UPDATE frontend/src/types/index.ts
+- **IMPLEMENT**: TypeScript types for new content
+- **PATTERN**: Follow existing API response types
+- **VALIDATE**: `npx tsc --noEmit`
 
 ---
 
 ## TESTING STRATEGY
 
-<Define testing approach based on project's test framework and patterns discovered in during research>
+### Backend Tests (pytest)
+- Unit tests for new AI generation methods
+- API endpoint tests with medical content
+- Database model validation tests
 
-### Unit Tests
+### Frontend Tests (Jest)
+- Component rendering tests
+- API integration tests
+- TypeScript type validation
 
-<Scope and requirements based on project standards>
-
-Design unit tests with fixtures and assertions following existing testing approaches
-
-### Integration Tests
-
-<Scope and requirements based on project standards>
-
-### Edge Cases
-
-<List specific edge cases that must be tested for this feature>
+### Medical Content Tests
+- Content quality validation
+- India-specific terminology checks
+- MBBS curriculum alignment tests
 
 ---
 
 ## VALIDATION COMMANDS
 
-<Define validation commands based on project's tools discovered in Phase 2>
+### Backend Validation
+```bash
+cd backend
+python -m pytest tests/ -v
+uvicorn app.main:app --reload --port 8001 &
+curl -X GET http://localhost:8001/docs
+```
 
-Execute every command to ensure zero regressions and 100% feature correctness.
+### Frontend Validation
+```bash
+cd frontend  
+npm run build
+npm run dev &
+curl -X GET http://localhost:3000
+```
 
-### Level 1: Syntax & Style
-
-<Project-specific linting and formatting commands>
-
-### Level 2: Unit Tests
-
-<Project-specific unit test commands>
-
-### Level 3: Integration Tests
-
-<Project-specific integration test commands>
-
-### Level 4: Manual Validation
-
-<Feature-specific manual testing steps - API calls, UI testing, etc.>
-
-### Level 5: Additional Validation (Optional)
-
-<MCP servers or additional CLI tools if available>
+### Integration Validation
+```bash
+# Test new feature endpoint
+curl -X POST http://localhost:8000/api/v1/new-endpoint \
+  -H "Content-Type: application/json" \
+  -d '{"test": "data"}'
+```
 
 ---
 
 ## ACCEPTANCE CRITERIA
 
-<List specific, measurable criteria that must be met for completion>
-
-- [ ] Feature implements all specified functionality
-- [ ] All validation commands pass with zero errors
-- [ ] Unit test coverage meets requirements (80%+)
-- [ ] Integration tests verify end-to-end workflows
-- [ ] Code follows project conventions and patterns
-- [ ] No regressions in existing functionality
-- [ ] Documentation is updated (if applicable)
-- [ ] Performance meets requirements (if applicable)
-- [ ] Security considerations addressed (if applicable)
+- [ ] Feature integrates seamlessly with existing Study Buddy architecture
+- [ ] Medical content quality meets MBBS preparation standards
+- [ ] All existing functionality remains unaffected
+- [ ] New content type appears in results viewer
+- [ ] Processing pipeline handles new content type
+- [ ] India-specific medical features implemented
+- [ ] All validation commands pass
+- [ ] TypeScript types properly defined
+- [ ] Responsive design maintained
 
 ---
 
-## COMPLETION CHECKLIST
+## MEDICAL EDUCATION NOTES
 
-- [ ] All tasks completed in order
-- [ ] Each task validation passed immediately
-- [ ] All validation commands executed successfully
-- [ ] Full test suite passes (unit + integration)
-- [ ] No linting or type checking errors
-- [ ] Manual testing confirms feature works
-- [ ] Acceptance criteria all met
-- [ ] Code reviewed for quality and maintainability
-
----
-
-## NOTES
-
-<Additional context, design decisions, trade-offs>
+- Ensure content aligns with MBBS curriculum
+- Include India-specific medical terminology
+- Validate against medical exam formats
+- Consider medical student study patterns
+- Maintain high content accuracy standards
 ```
 
-## Output Format
+## Quality Criteria for Study Buddy App
 
-**Filename**: `.agents/plans/{kebab-case-descriptive-name}.md`
+### Medical Education Focus ✓
+- [ ] Content aligns with MBBS curriculum
+- [ ] India-specific medical features included
+- [ ] Medical exam preparation optimized
+- [ ] Content quality meets medical standards
 
-- Replace `{kebab-case-descriptive-name}` with short, descriptive feature name
-- Examples: `add-user-authentication.md`, `implement-search-api.md`, `refactor-database-layer.md`
-
-**Directory**: Create `.agents/plans/` if it doesn't exist
-
-## Quality Criteria
-
-### Context Completeness ✓
-
-- [ ] All necessary patterns identified and documented
-- [ ] External library usage documented with links
-- [ ] Integration points clearly mapped
-- [ ] Gotchas and anti-patterns captured
-- [ ] Every task has executable validation command
+### Study Buddy Integration ✓
+- [ ] Follows existing session-based architecture
+- [ ] Integrates with current AI processing pipeline
+- [ ] Maintains existing UI/UX patterns
+- [ ] Preserves medical content generation quality
 
 ### Implementation Ready ✓
-
-- [ ] Another developer could execute without additional context
-- [ ] Tasks ordered by dependency (can execute top-to-bottom)
-- [ ] Each task is atomic and independently testable
-- [ ] Pattern references include specific file:line numbers
-
-### Pattern Consistency ✓
-
-- [ ] Tasks follow existing codebase conventions
-- [ ] New patterns justified with clear rationale
-- [ ] No reinvention of existing patterns or utils
-- [ ] Testing approach matches project standards
-
-### Information Density ✓
-
-- [ ] No generic references (all specific and actionable)
-- [ ] URLs include section anchors when applicable
-- [ ] Task descriptions use codebase keywords
-- [ ] Validation commands are non interactive executable
+- [ ] Tasks reference existing Study Buddy patterns
+- [ ] Medical content requirements specified
+- [ ] Integration points clearly mapped
+- [ ] Validation commands test medical functionality
 
 ## Success Metrics
 
-**One-Pass Implementation**: Execution agent can complete feature without additional research or clarification
-
-**Validation Complete**: Every task has at least one working validation command
-
-**Context Rich**: The Plan passes "No Prior Knowledge Test" - someone unfamiliar with codebase can implement using only Plan content
-
-**Confidence Score**: #/10 that execution will succeed on first attempt
-
-## Report
-
-After creating the Plan, provide:
-
-- Summary of feature and approach
-- Full path to created Plan file
-- Complexity assessment
-- Key implementation risks or considerations
-- Estimated confidence score for one-pass success
+**Medical Student Value**: Feature enhances MBBS exam preparation
+**Study Buddy Integration**: Seamless integration with existing architecture  
+**Implementation Success**: One-pass implementation using existing patterns
+**Content Quality**: Medical content meets educational standards
