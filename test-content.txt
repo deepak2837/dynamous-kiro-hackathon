@@ -1,0 +1,11 @@
+This is a test PDF content for StudyBuddy application.
+
+Medical Study Content:
+- The heart has four chambers
+- Blood circulation involves systemic and pulmonary circuits
+- The cardiac cycle consists of systole and diastole
+
+Test Questions:
+1. How many chambers does the heart have?
+2. What are the two main circulation circuits?
+3. What are the phases of the cardiac cycle?

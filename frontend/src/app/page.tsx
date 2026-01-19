@@ -15,9 +15,15 @@ export default function HomePage() {
         </p>
         <Link 
           href="/study-buddy" 
-          className="btn-primary text-lg px-8 py-3 inline-block"
+          className="btn-primary text-lg px-8 py-3 inline-block mr-4"
         >
           Start Studying 🚀
+        </Link>
+        <Link 
+          href="/auth" 
+          className="btn-secondary text-lg px-8 py-3 inline-block"
+        >
+          Login / Register
         </Link>
       </div>
 
