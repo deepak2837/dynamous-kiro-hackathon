@@ -143,3 +143,8 @@ data/
 *.key
 *.pem
 config/secrets.json
+
+# Sensitive documentation (keep sanitized versions only)
+*_INTEGRATION_SUMMARY.md
+*_API_KEYS.md
+*_CREDENTIALS.md
