@@ -18,9 +18,20 @@ export interface UploadRestrictionResponse {
 export interface ProcessingStatusResponse {
   session_id: string;
   status: SessionStatus;
-  progress_percentage?: number;
+  progress?: ProcessingProgress;
   message?: string;
   error_message?: string;
+  email_notification_enabled: boolean;
+}
+
+export interface ProcessingProgress {
+  current_step: ProcessingStep;
+  step_progress: number;
+  overall_progress: number;
+  estimated_time_remaining?: number;
+  pages_processed?: number;
+  total_pages?: number;
+  step_message?: string;
 }
 
 export interface StudySession {
@@ -93,11 +104,25 @@ export interface Note {
   created_at: string;
 }
 
+export enum ProcessingStep {
+  UPLOAD_COMPLETE = "upload_complete",
+  FILE_ANALYSIS = "file_analysis", 
+  OCR_PROCESSING = "ocr_processing",
+  AI_PROCESSING = "ai_processing",
+  GENERATING_QUESTIONS = "generating_questions",
+  GENERATING_MOCK_TESTS = "generating_mock_tests",
+  GENERATING_MNEMONICS = "generating_mnemonics",
+  GENERATING_CHEAT_SHEETS = "generating_cheat_sheets",
+  GENERATING_NOTES = "generating_notes",
+  FINALIZING = "finalizing",
+  COMPLETED = "completed",
+  FAILED = "failed"
+}
+
 // Enums
 export enum ProcessingMode {
-  DEFAULT = "default",
-  OCR = "ocr",
-  AI_BASED = "ai_based"
+  OCR_AI = "ocr_ai",
+  AI_ONLY = "ai_only"
 }
 
 export enum DifficultyLevel {

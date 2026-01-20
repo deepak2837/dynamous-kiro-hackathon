@@ -138,6 +138,18 @@ To stop all services:
 ./scripts/stop.sh
 ```
 
+### Quick Testing
+
+```bash
+# API-based E2E test (fast, ~30 seconds)
+python test_full_flow.py
+
+# Browser-based E2E test (comprehensive, ~2-3 minutes)
+python test_e2e_selenium.py
+```
+
+See [Testing Documentation](docs/TESTING.md) for detailed testing guide.
+
 ### Manual Setup
 
 If you prefer manual setup or encounter issues with the automated script:
@@ -206,24 +218,55 @@ celery -A app.tasks worker --loglevel=info
 ### Backend (.env)
 ```env
 # Database
-MONGODB_URL=mongodb://localhost:27017/medgloss
-DATABASE_NAME=medgloss
+MONGODB_URL=mongodb://localhost:27017
+DATABASE_NAME=studybuddy
 
-# AI Service
-GOOGLE_AI_API_KEY=your_api_key_here
-GENAI_PROJECT_ID=your_project_id
+# AI Service (Gemini)
+GEMINI_API_KEY=your_api_key_here
+GOOGLE_CLOUD_PROJECT_ID=your_project_id
+GOOGLE_CLOUD_LOCATION=us-central1
+GOOGLE_APPLICATION_CREDENTIALS=./google_service_account.json
 
-# Authentication (use existing MedGloss credentials)
-JWT_SECRET=your_jwt_secret
+# Authentication
+JWT_SECRET_KEY=your-secret-key-change-in-production
 JWT_ALGORITHM=HS256
-JWT_EXPIRY=86400
+ACCESS_TOKEN_EXPIRE_MINUTES=43200
+
+# OTP Service Configuration
+DEFAULT_OTP_METHOD=email  # "sms" or "email"
+
+# SMS Service (Fast2SMS)
+FAST2SMS_API_KEY=your_fast2sms_api_key
+
+# Email Service (SMTP)
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your_email@gmail.com
+SMTP_PASSWORD=your_app_password
 
 # File Storage
 UPLOAD_DIR=./uploads
 MAX_FILE_SIZE=52428800  # 50MB
+MAX_IMAGES_PER_UPLOAD=25
 
-# OCR Scripts Path
-OCR_SCRIPTS_PATH=/path/to/medgloss-data-extractorfiles
+# File size limits (in bytes)
+MAX_PDF_SIZE=50485760  # 48MB
+MAX_IMAGE_SIZE=10485760  # 10MB
+MAX_SLIDE_SIZE=104857600  # 100MB
+
+# Upload restrictions
+UPLOAD_COOLDOWN_MINUTES=5
+ENABLE_UPLOAD_RESTRICTIONS=true
+
+# AWS S3 Configuration
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_REGION=ap-south-1
+STUDY_BUDDY_BUCKET_NAME=study-buddy-crud-bucket
+STORAGE=S3  # "S3" or "LOCAL"
+
+# Rate Limiting
+ENABLE_RATE_LIMITING=true
 
 # Redis
 REDIS_URL=redis://localhost:6379
@@ -335,7 +378,19 @@ pytest
 
 # Integration tests
 pytest tests/integration
+
+# End-to-end API test (requires existing user)
+python test_full_flow.py
+
+# End-to-end browser test with Selenium
+python test_e2e_selenium.py
 ```
+
+**Test Types:**
+- **Unit Tests**: Test individual functions and components
+- **Integration Tests**: Test API endpoints and database operations
+- **E2E API Test** (`test_full_flow.py`): Tests complete upload flow via API
+- **E2E Browser Test** (`test_e2e_selenium.py`): Tests complete user journey in browser
 
 ## Integration with MedGloss
 
@@ -414,6 +469,13 @@ Study Buddy App is designed to integrate seamlessly with the existing MedGloss p
 - Verify GenAI API credentials in .env
 - Check API quota and rate limits
 - Review logs for specific error messages
+
+### E2E Selenium tests failing
+- Install Chrome/Chromium browser
+- Install Selenium: `pip install selenium`
+- Update TEST_FILE_PATH in test_e2e_selenium.py
+- Ensure both frontend (port 3001) and backend (port 8000) are running
+- Check test credentials are valid in the database
 
 ## Contributing
 

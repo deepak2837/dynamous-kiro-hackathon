@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { Toaster } from 'react-hot-toast'
+import Header from '@/components/Header'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,23 +22,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <div className="min-h-screen bg-gray-50">
-            <header className="bg-white shadow-sm border-b">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-16">
-                  <div className="flex items-center">
-                    <h1 className="text-xl font-bold text-gray-900">
-                      📚 StudyBuddy
-                    </h1>
-                    <span className="ml-2 text-sm text-gray-500">
-                      AI-Powered Study Companion
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    For Medical Students
-                  </div>
-                </div>
-              </div>
-            </header>
+            <Header />
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               {children}
             </main>

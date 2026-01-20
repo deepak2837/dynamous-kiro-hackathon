@@ -4,16 +4,25 @@ import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { ProcessingMode } from '@/types/api';
 import { StudyBuddyAPI } from '@/lib/studybuddy-api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface FileUploadProps {
   onUploadSuccess: (sessionId: string) => void;
   onUploadError: (error: string) => void;
 }
 
+interface FileLimits {
+  pdf: { max_size_mb: number; description: string };
+  image: { max_size_mb: number; description: string };
+  slide: { max_size_mb: number; description: string };
+}
+
 export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploadProps) {
+  const { user } = useAuth();
   const [files, setFiles] = useState<File[]>([]);
-  const [processingMode, setProcessingMode] = useState<ProcessingMode>(ProcessingMode.DEFAULT);
+  const [processingMode, setProcessingMode] = useState<ProcessingMode>(ProcessingMode.OCR_AI);
   const [isUploading, setIsUploading] = useState(false);
+  const [fileLimits, setFileLimits] = useState<FileLimits | null>(null);
   const [uploadRestriction, setUploadRestriction] = useState<{
     allowed: boolean;
     message?: string;
@@ -21,8 +30,66 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
   }>({ allowed: true });
   const [countdown, setCountdown] = useState<number>(0);
 
-  // TODO: Get actual user ID from auth context
-  const userId = 'demo-user-123';
+  // Get user ID from authenticated user
+  const userId = user?.id || '';
+
+  // Don't render if no user
+  if (!user) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-gray-600">Please login to upload files.</p>
+      </div>
+    );
+  }
+
+  // Fetch file limits on component mount
+  useEffect(() => {
+    const fetchFileLimits = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/upload/file-limits`);
+        const data = await response.json();
+        setFileLimits(data.limits);
+      } catch (error) {
+        console.error('Failed to fetch file limits:', error);
+      }
+    };
+    fetchFileLimits();
+  }, []);
+
+  const getFileTypeCategory = (filename: string): keyof FileLimits | null => {
+    const ext = filename.toLowerCase().split('.').pop();
+    switch (ext) {
+      case 'pdf':
+        return 'pdf';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return 'image';
+      case 'pptx':
+      case 'ppt':
+        return 'slide';
+      default:
+        return null;
+    }
+  };
+
+  const validateFileSize = (file: File): string | null => {
+    if (!fileLimits) return null;
+    
+    const category = getFileTypeCategory(file.name);
+    if (!category) {
+      return `File type not supported. Allowed: PDF, JPG, PNG, PPTX`;
+    }
+    
+    const limit = fileLimits[category];
+    const fileSizeMB = file.size / (1024 * 1024);
+    
+    if (fileSizeMB > limit.max_size_mb) {
+      return `${limit.description} file '${file.name}' is too large (${fileSizeMB.toFixed(1)}MB). Maximum allowed: ${limit.max_size_mb}MB`;
+    }
+    
+    return null;
+  };
 
   // Check upload restrictions on component mount and periodically
   const checkUploadRestrictions = useCallback(async () => {
@@ -72,22 +139,80 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
     return `${remainingSeconds}s`;
   };
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
     if (!uploadRestriction.allowed) {
       onUploadError(uploadRestriction.message || 'Upload not allowed at this time');
       return;
     }
-    setFiles(prev => [...prev, ...acceptedFiles]);
-  }, [uploadRestriction.allowed, uploadRestriction.message, onUploadError]);
+
+    // Handle rejected files
+    if (rejectedFiles.length > 0) {
+      const errors = rejectedFiles.map(({ file, errors }) => {
+        const errorMessages = errors.map((e: any) => {
+          if (e.code === 'file-too-large') {
+            return `File '${file.name}' is too large`;
+          }
+          if (e.code === 'file-invalid-type') {
+            return `File '${file.name}' has unsupported type`;
+          }
+          return e.message;
+        });
+        return errorMessages.join(', ');
+      });
+      onUploadError(errors.join('; '));
+      return;
+    }
+
+    // Validate file sizes with specific limits
+    const validationErrors: string[] = [];
+    const validFiles: File[] = [];
+
+    // Count images in new files
+    const newImageFiles = acceptedFiles.filter(file => {
+      const ext = file.name.toLowerCase().split('.').pop();
+      return ['jpg', 'jpeg', 'png'].includes(ext || '');
+    });
+
+    // Count existing images
+    const existingImages = files.filter(file => {
+      const ext = file.name.toLowerCase().split('.').pop();
+      return ['jpg', 'jpeg', 'png'].includes(ext || '');
+    });
+
+    const totalImages = existingImages.length + newImageFiles.length;
+    const maxImages = 25; // From backend config
+
+    if (totalImages > maxImages) {
+      onUploadError(`Too many images. Maximum ${maxImages} images allowed. You have ${existingImages.length} images and trying to add ${newImageFiles.length} more.`);
+      return;
+    }
+
+    acceptedFiles.forEach(file => {
+      const error = validateFileSize(file);
+      if (error) {
+        validationErrors.push(error);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (validationErrors.length > 0) {
+      onUploadError(validationErrors.join('; '));
+      return;
+    }
+
+    setFiles(prev => [...prev, ...validFiles]);
+  }, [uploadRestriction.allowed, uploadRestriction.message, onUploadError, validateFileSize]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
       'image/*': ['.jpg', '.jpeg', '.png'],
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx']
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+      'application/vnd.ms-powerpoint': ['.ppt']
     },
-    maxSize: 50 * 1024 * 1024, // 50MB
+    maxSize: 100 * 1024 * 1024, // 100MB (will be validated more specifically)
     disabled: !uploadRestriction.allowed
   });
 
@@ -176,8 +301,15 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
                 Drag & drop files here, or <span className="text-blue-600">click to select</span>
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                Supports PDF, JPG, PNG, PPTX (max 50MB each)
+                Supports PDF, JPG, PNG, PPTX (max 25 images per upload)
               </p>
+              {fileLimits && (
+                <div className="text-xs text-gray-400 mt-2 space-y-1">
+                  <div>PDF: max {fileLimits.pdf.max_size_mb}MB</div>
+                  <div>Images: max {fileLimits.image.max_size_mb}MB</div>
+                  <div>Slides: max {fileLimits.slide.max_size_mb}MB</div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -220,15 +352,15 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
             <input
               type="radio"
               name="processingMode"
-              value={ProcessingMode.DEFAULT}
-              checked={processingMode === ProcessingMode.DEFAULT}
+              value={ProcessingMode.OCR_AI}
+              checked={processingMode === ProcessingMode.OCR_AI}
               onChange={(e) => setProcessingMode(e.target.value as ProcessingMode)}
               className="text-blue-600"
               disabled={!uploadRestriction.allowed}
             />
             <div>
-              <span className="font-medium">Default Mode</span>
-              <p className="text-sm text-gray-500">Fast direct text extraction</p>
+              <span className="font-medium">OCR + AI Mode</span>
+              <p className="text-sm text-gray-500">Enhanced extraction with AI processing for scanned documents</p>
             </div>
           </label>
           
@@ -236,31 +368,15 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
             <input
               type="radio"
               name="processingMode"
-              value={ProcessingMode.OCR}
-              checked={processingMode === ProcessingMode.OCR}
+              value={ProcessingMode.AI_ONLY}
+              checked={processingMode === ProcessingMode.AI_ONLY}
               onChange={(e) => setProcessingMode(e.target.value as ProcessingMode)}
               className="text-blue-600"
               disabled={!uploadRestriction.allowed}
             />
             <div>
-              <span className="font-medium">OCR Mode</span>
-              <p className="text-sm text-gray-500">Enhanced extraction for scanned documents</p>
-            </div>
-          </label>
-          
-          <label className="flex items-center space-x-3">
-            <input
-              type="radio"
-              name="processingMode"
-              value={ProcessingMode.AI_BASED}
-              checked={processingMode === ProcessingMode.AI_BASED}
-              onChange={(e) => setProcessingMode(e.target.value as ProcessingMode)}
-              className="text-blue-600"
-              disabled={!uploadRestriction.allowed}
-            />
-            <div>
-              <span className="font-medium">AI-Based Mode</span>
-              <p className="text-sm text-gray-500">Context-aware intelligent processing</p>
+              <span className="font-medium">AI Only Mode</span>
+              <p className="text-sm text-gray-500">Direct AI processing for digital documents</p>
             </div>
           </label>
         </div>

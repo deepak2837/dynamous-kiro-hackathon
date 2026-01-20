@@ -11,6 +11,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 import os
 from app.config import settings
+from app.utils.error_logger import error_logger
 
 class OTPService:
     """Service for sending OTP via SMS and Email"""
@@ -32,7 +33,7 @@ class OTPService:
             
             api_key = settings.FAST2SMS_API_KEY
             if not api_key:
-                print("Fast2SMS API key not configured")
+                logger.info("Fast2SMS API key not configured")
                 return False
             
             url = "https://www.fast2sms.com/dev/bulkV2"
@@ -54,14 +55,14 @@ class OTPService:
             
             if response.status_code == 200:
                 result = response.json()
-                print(f"SMS sent successfully: {result}")
+                logger.info(f"SMS sent successfully: {result}")
                 return True
             else:
-                print(f"SMS sending failed: {response.status_code} - {response.text}")
+                logger.error(f"SMS sending failed: {response.status_code} - {response.text}")
                 return False
                 
         except Exception as e:
-            print(f"Error sending SMS OTP: {str(e)}")
+            logger.error(f"Error sending SMS OTP: {str(e)}")
             return False
     
     @staticmethod
@@ -103,14 +104,14 @@ If you didn't request this OTP, please ignore this email.
                 
                 async with session.post(url, json=message, headers=headers) as response:
                     if response.status == 200:
-                        print(f"Gmail API: Email OTP sent successfully to {email}")
+                        logger.info(f"Gmail API: Email OTP sent successfully to {email}")
                         return True
                     else:
-                        print(f"Gmail API error: {response.status} - {await response.text()}")
+                        logger.error(f"Gmail API error: {response.status} - {await response.text()}")
                         return False
                         
         except Exception as e:
-            print(f"Gmail API error: {str(e)}")
+            logger.error(f"Gmail API error: {str(e)}")
             return False
     
     @staticmethod
@@ -121,7 +122,7 @@ If you didn't request this OTP, please ignore this email.
             result = await OTPService.send_email_via_gmail_api(email, otp, name)
             if result:
                 return True
-            print("Gmail API failed, falling back to SMTP...")
+            logger.info("Gmail API failed, falling back to SMTP...")
         
         # Fall back to SMTP
         try:
@@ -131,7 +132,7 @@ If you didn't request this OTP, please ignore this email.
             smtp_password = settings.SMTP_PASSWORD
             
             if not all([smtp_server, smtp_port, smtp_username, smtp_password]):
-                print("Email configuration not complete")
+                logger.info("Email configuration not complete")
                 return False
             
             # Create message
@@ -172,11 +173,11 @@ If you didn't request this OTP, please ignore this email.
             server.sendmail(smtp_username, email, text)
             server.quit()
             
-            print(f"Email OTP sent successfully to {email}")
+            logger.info(f"Email OTP sent successfully to {email}")
             return True
             
         except Exception as e:
-            print(f"Error sending email OTP: {str(e)}")
+            logger.error(f"Error sending email OTP: {str(e)}")
             return False
     
     @staticmethod
@@ -187,7 +188,7 @@ If you didn't request this OTP, please ignore this email.
         elif method == "email" and email:
             return await OTPService.send_email_otp(email, otp, name)
         else:
-            print(f"Invalid OTP method: {method}")
+            logger.info(f"Invalid OTP method: {method}")
             return False
 
 class OTPManager:
@@ -212,7 +213,7 @@ class OTPManager:
             "created_at": datetime.utcnow()
         }
         
-        print(f"OTP stored for {mobile_number}: {otp} (expires at {expires_at})")
+        logger.info(f"OTP stored for {mobile_number}: {otp} (expires at {expires_at})")
     
     @classmethod
     def verify_otp(cls, mobile_number: str, otp: str, purpose: str) -> tuple[bool, Optional[dict]]:
@@ -254,4 +255,4 @@ class OTPManager:
             cls.clear_otp(number)
         
         if expired_numbers:
-            print(f"Cleaned up {len(expired_numbers)} expired OTPs")
+            logger.info(f"Cleaned up {len(expired_numbers)} expired OTPs")

@@ -1,63 +1,254 @@
 import asyncio
 import uuid
 import logging
-from typing import List
+import os
+from typing import List, Dict, Any
 from datetime import datetime
 
-from app.models import ProcessingMode, SessionStatus, Question, MockTest, Mnemonic, CheatSheet, Note, DifficultyLevel
+from app.models import ProcessingMode, SessionStatus, Question, MockTest, Mnemonic, CheatSheet, Note, DifficultyLevel, ProcessingStep, DocumentType
 from app.database import get_database
 from app.services.ai_service import AIService
 from app.services.file_processor import FileProcessor
+from app.services.content_aggregator import ContentAggregator
+from app.services.mock_test_generator import MockTestGenerator
 from app.services.s3_service import s3_service
-
-logger = logging.getLogger(__name__)
+from app.services.progress_tracker import ProgressTracker
+from app.utils.error_handler import ErrorHandler, RecoveryAction
+from app.logging_config import logger
 
 class ProcessingService:
     def __init__(self):
         self.ai_service = AIService()
         self.file_processor = FileProcessor()
+        self.content_aggregator = ContentAggregator()
+        self.mock_test_generator = MockTestGenerator()
     
     async def start_processing(self, session_id: str, files: List[str], mode: ProcessingMode, user_id: str):
-        """Start async processing of uploaded files"""
+        """Start async processing of uploaded files with batching and progress tracking"""
         try:
-            # Update session status to processing
-            db = get_database()
-            await db.study_sessions.update_one(
-                {"session_id": session_id},
-                {"$set": {"status": SessionStatus.PROCESSING}}
+            # Initialize progress tracking
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.FILE_ANALYSIS, 
+                0, 
+                "Analyzing uploaded files..."
             )
             
-            # Get session data to check for S3 keys
+            # Get session data
+            db = get_database()
             session_data = await db.study_sessions.find_one({"session_id": session_id})
             if not session_data:
                 raise Exception("Session not found")
             
-            # Process files and extract text
-            extracted_text = await self._extract_text_from_files(
-                files, 
-                mode, 
-                session_data.get("s3_keys", [])
+            session_name = session_data.get("session_name", "Study Session")
+            s3_keys = session_data.get("s3_keys", [])
+            
+            # Count total pages for progress estimation
+            total_pages = await self._count_total_pages(files, s3_keys)
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.FILE_ANALYSIS, 
+                50, 
+                f"Found {total_pages} pages to process",
+                total_pages=total_pages
             )
             
-            if not extracted_text.strip():
+            # Process files with batching
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.OCR_PROCESSING if mode == ProcessingMode.OCR_AI else ProcessingStep.AI_PROCESSING, 
+                0, 
+                "Extracting text from files..."
+            )
+            
+            # Extract text with batching
+            all_batches = []
+            doc_type = DocumentType.STUDY_NOTES  # Default
+            
+            for i, file_path in enumerate(files):
+                try:
+                    # Get S3 key if available
+                    s3_key = s3_keys[i] if i < len(s3_keys) else None
+                    
+                    # Download from S3 if needed
+                    if s3_key and s3_service.is_s3_enabled():
+                        temp_filename = os.path.basename(file_path)
+                        temp_path = os.path.join("/tmp", f"processing_{temp_filename}")
+                        local_file_path = await s3_service.download_file_for_processing(s3_key, temp_path)
+                    else:
+                        local_file_path = file_path
+                    
+                    # Extract text with batching
+                    if mode == ProcessingMode.OCR_AI:
+                        batches = await self.file_processor.extract_text_ocr_batched(local_file_path, session_id)
+                    else:  # AI_ONLY
+                        batches = await self.file_processor.extract_text_ai_batched(local_file_path, session_id)
+                    
+                    all_batches.extend(batches)
+                    
+                    # Detect document type from first batch
+                    if i == 0 and batches and batches[0].text_content:
+                        doc_type = await self.ai_service.detect_document_type(batches[0].text_content)
+                        logger.info(f"Detected document type: {doc_type}")
+                    
+                    # Clean up temp file
+                    if s3_key and s3_service.is_s3_enabled() and os.path.exists(local_file_path):
+                        os.remove(local_file_path)
+                        
+                except Exception as e:
+                    logger.error(f"Failed to process file {file_path}: {str(e)}")
+                    # Try OCR fallback if AI failed
+                    if mode == ProcessingMode.AI_ONLY:
+                        error_info = await ErrorHandler.handle_ocr_error(e, {"file": file_path})
+                        if error_info["recovery_action"] == RecoveryAction.FALLBACK_AI:
+                            logger.info("Attempting OCR fallback...")
+                            try:
+                                batches = await self.file_processor.extract_text_ocr_batched(local_file_path, session_id)
+                                all_batches.extend(batches)
+                            except Exception as fallback_error:
+                                logger.error(f"Fallback also failed: {fallback_error}")
+                    continue
+            
+            if not all_batches:
                 raise Exception("No text could be extracted from the uploaded files")
             
-            # Generate all content types
-            await self._generate_questions(session_id, user_id, extracted_text)
-            await self._generate_mock_tests(session_id, user_id)
-            await self._generate_mnemonics(session_id, user_id, extracted_text)
-            await self._generate_cheat_sheets(session_id, user_id, extracted_text)
-            await self._generate_notes(session_id, user_id, extracted_text)
+            logger.info(f"Created {len(all_batches)} batches for processing")
             
-            # Update session status to completed
-            await db.study_sessions.update_one(
-                {"session_id": session_id},
-                {
-                    "$set": {
-                        "status": SessionStatus.COMPLETED,
-                        "completed_at": datetime.utcnow()
-                    }
-                }
+            # Process each batch and generate content
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_QUESTIONS, 
+                0, 
+                f"Processing batch 1 of {len(all_batches)}..."
+            )
+            
+            batch_contents = []
+            for i, batch in enumerate(all_batches, 1):
+                try:
+                    # Generate content from batch
+                    batch_content = await self.ai_service.generate_content_from_batch(
+                        batch.text_content, 
+                        doc_type
+                    )
+                    batch_contents.append(batch_content)
+                    
+                    # Update progress
+                    progress = int((i / len(all_batches)) * 100)
+                    await ProgressTracker.update_progress(
+                        session_id,
+                        ProcessingStep.GENERATING_QUESTIONS,
+                        progress,
+                        f"Processing batch {i} of {len(all_batches)}...",
+                        pages_processed=i * 3  # Approximate pages
+                    )
+                    
+                except Exception as e:
+                    logger.error(f"Failed to process batch {i}: {str(e)}")
+                    error_info = await ErrorHandler.handle_ai_error(e, {"batch": i})
+                    logger.warning(f"Batch {i} error: {error_info['user_message']}")
+                    continue
+            
+            if not batch_contents:
+                raise Exception("Failed to generate content from any batch")
+            
+            # Aggregate results
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_QUESTIONS, 
+                100, 
+                "Aggregating questions..."
+            )
+            
+            all_questions = await self.content_aggregator.aggregate_questions(
+                batch_contents, session_id, user_id
+            )
+            
+            # Store questions
+            for question in all_questions:
+                await db.questions.insert_one(question.dict())
+            
+            logger.info(f"Stored {len(all_questions)} questions")
+            
+            # Create mock test from questions (NO AI CALL)
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_MOCK_TESTS, 
+                0, 
+                "Creating mock test..."
+            )
+            
+            mock_test = await self.mock_test_generator.create_mock_test_from_questions(
+                session_id, user_id, all_questions, session_name
+            )
+            
+            if mock_test:
+                await db.mock_tests.insert_one(mock_test.dict())
+                logger.info(f"Created mock test with {mock_test.total_questions} questions")
+            
+            # Aggregate mnemonics
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_MNEMONICS, 
+                0, 
+                "Aggregating mnemonics..."
+            )
+            
+            all_mnemonics = await self.content_aggregator.aggregate_mnemonics(
+                batch_contents, session_id, user_id
+            )
+            
+            for mnemonic in all_mnemonics:
+                await db.mnemonics.insert_one(mnemonic.dict())
+            
+            logger.info(f"Stored {len(all_mnemonics)} mnemonics")
+            
+            # Aggregate cheat sheets
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_CHEAT_SHEETS, 
+                0, 
+                "Creating cheat sheets..."
+            )
+            
+            all_cheat_sheets = await self.content_aggregator.aggregate_cheat_sheets(
+                batch_contents, session_id, user_id
+            )
+            
+            for sheet in all_cheat_sheets:
+                await db.cheat_sheets.insert_one(sheet.dict())
+            
+            logger.info(f"Stored {len(all_cheat_sheets)} cheat sheets")
+            
+            # Compile notes
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_NOTES, 
+                0, 
+                "Compiling study notes..."
+            )
+            
+            note = await self.content_aggregator.compile_notes(
+                all_questions, all_mnemonics, all_cheat_sheets,
+                session_id, user_id
+            )
+            
+            await db.notes.insert_one(note.dict())
+            logger.info("Compiled and stored notes")
+            
+            # Finalize processing
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.FINALIZING, 
+                50, 
+                "Finalizing study materials..."
+            )
+            
+            # Mark as completed
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.COMPLETED, 
+                100, 
+                "All study materials ready!"
             )
             
             logger.info(f"Processing completed for session {session_id}")
@@ -65,19 +256,52 @@ class ProcessingService:
         except Exception as e:
             logger.error(f"Processing failed for session {session_id}: {str(e)}")
             
-            # Update session status to failed
-            db = get_database()
-            await db.study_sessions.update_one(
-                {"session_id": session_id},
-                {
-                    "$set": {
-                        "status": SessionStatus.FAILED,
-                        "error_message": str(e)
-                    }
-                }
+            # Handle error and update progress
+            error_info = await ErrorHandler.handle_processing_error(
+                e, 
+                {"session_id": session_id, "step": "processing"}
+            )
+            
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.FAILED, 
+                0, 
+                error_info["user_message"]
             )
     
-    async def _extract_text_from_files(self, files: List[str], mode: ProcessingMode, s3_keys: List[str] = None) -> str:
+    async def _count_total_pages(self, files: List[str], s3_keys: List[str] = None) -> int:
+        """Count total pages in all uploaded files"""
+        total_pages = 0
+        try:
+            for i, file_path in enumerate(files):
+                try:
+                    if s3_keys and i < len(s3_keys):
+                        # Download from S3 first
+                        local_path = f"/tmp/{s3_keys[i].split('/')[-1]}"
+                        await s3_service.download_file_for_processing(s3_keys[i], local_path)
+                        file_path = local_path
+                    
+                    # Count pages based on file type
+                    if file_path.lower().endswith('.pdf'):
+                        import PyPDF2
+                        with open(file_path, 'rb') as file:
+                            pdf_reader = PyPDF2.PdfReader(file)
+                            total_pages += len(pdf_reader.pages)
+                    else:
+                        # For images and other files, count as 1 page each
+                        total_pages += 1
+                        
+                except Exception as e:
+                    logger.warning(f"Could not count pages for {file_path}: {str(e)}")
+                    total_pages += 1  # Default to 1 page
+                    
+            return max(1, total_pages)  # Minimum 1 page
+            
+        except Exception as e:
+            logger.error(f"Error counting pages: {str(e)}")
+            return len(files)  # Fallback to file count
+    
+    async def _extract_text_from_files(self, files: List[str], mode: ProcessingMode, s3_keys: List[str] = None, session_id: str = None) -> str:
         """Extract text from uploaded files based on processing mode"""
         all_text = []
         s3_keys = s3_keys or []
@@ -99,11 +323,9 @@ class ProcessingService:
                     local_file_path = file_path
                 
                 # Extract text based on mode
-                if mode == ProcessingMode.DEFAULT:
-                    text = await self.file_processor.extract_text_default(local_file_path)
-                elif mode == ProcessingMode.OCR:
+                if mode == ProcessingMode.OCR_AI:
                     text = await self.file_processor.extract_text_ocr(local_file_path)
-                else:  # AI_BASED
+                else:  # AI_ONLY
                     text = await self.file_processor.extract_text_ai(local_file_path)
                 
                 if text:
@@ -146,7 +368,7 @@ class ProcessingService:
             logger.error(f"Failed to generate questions for session {session_id}: {str(e)}")
     
     async def _generate_mock_tests(self, session_id: str, user_id: str):
-        """Generate mock tests from existing questions"""
+        """Generate one mock test from existing questions based on PDF content"""
         try:
             db = get_database()
             
@@ -157,33 +379,32 @@ class ProcessingService:
                 logger.warning(f"Not enough questions to create mock test for session {session_id}")
                 return
             
-            # Create mock tests with different difficulty levels
-            test_configs = [
-                {"name": "Quick Practice Test", "count": min(10, len(questions)), "duration": 15},
-                {"name": "Comprehensive Mock Test", "count": min(25, len(questions)), "duration": 45},
-                {"name": "Master Challenge Test", "count": min(50, len(questions)), "duration": 90}
-            ]
+            # Create one comprehensive mock test based on all generated questions
+            total_questions = len(questions)
             
-            for config in test_configs:
-                if len(questions) >= config["count"]:
-                    selected_questions = questions[:config["count"]]
-                    
-                    mock_test = MockTest(
-                        test_id=str(uuid.uuid4()),
-                        session_id=session_id,
-                        user_id=user_id,
-                        test_name=config["name"],
-                        questions=[q["question_id"] for q in selected_questions],
-                        duration_minutes=config["duration"],
-                        total_questions=len(selected_questions)
-                    )
-                    
-                    await db.mock_tests.insert_one(mock_test.dict())
+            # Determine test duration based on number of questions (1.5 minutes per question)
+            duration = max(15, min(90, int(total_questions * 1.5)))
             
-            logger.info(f"Generated mock tests for session {session_id}")
+            # Generate test name based on content
+            session_data = await db.study_sessions.find_one({"session_id": session_id})
+            session_name = session_data.get("session_name", "Study Session") if session_data else "Study Session"
+            
+            mock_test = MockTest(
+                test_id=str(uuid.uuid4()),
+                session_id=session_id,
+                user_id=user_id,
+                test_name=f"Mock Test - {session_name}",
+                questions=[q["question_id"] for q in questions],
+                duration_minutes=duration,
+                total_questions=total_questions
+            )
+            
+            await db.mock_tests.insert_one(mock_test.dict())
+            
+            logger.info(f"Generated 1 mock test with {total_questions} questions for session {session_id}")
             
         except Exception as e:
-            logger.error(f"Failed to generate mock tests for session {session_id}: {str(e)}")
+            logger.error(f"Failed to generate mock test for session {session_id}: {str(e)}")
     
     async def _generate_mnemonics(self, session_id: str, user_id: str, text: str):
         """Generate mnemonics from extracted text"""
@@ -233,31 +454,106 @@ class ProcessingService:
         except Exception as e:
             logger.error(f"Failed to generate cheat sheets for session {session_id}: {str(e)}")
     
-    async def _generate_notes(self, session_id: str, user_id: str, text: str):
-        """Generate compiled notes from extracted text"""
+    async def _store_questions(self, session_id: str, user_id: str, questions_data: List[Dict[str, Any]]):
+        """Store generated questions in database"""
         try:
-            notes_data = await self.ai_service.generate_notes(text)
             db = get_database()
-            
-            # Get related questions and mnemonics
-            questions = await db.questions.find({"session_id": session_id}).to_list(length=None)
-            mnemonics = await db.mnemonics.find({"session_id": session_id}).to_list(length=None)
-            
-            for n_data in notes_data:
-                note = Note(
-                    note_id=str(uuid.uuid4()),
+            for q_data in questions_data:
+                question = Question(
+                    question_id=str(uuid.uuid4()),
                     session_id=session_id,
                     user_id=user_id,
-                    title=n_data["title"],
-                    content=n_data["content"],
-                    important_questions=[q["question_id"] for q in questions[:5]],  # Top 5 questions
-                    summary_points=n_data["summary_points"],
-                    related_mnemonics=[m["mnemonic_id"] for m in mnemonics[:3]]  # Top 3 mnemonics
+                    question_text=q_data["question"],
+                    options=q_data["options"],
+                    correct_answer=q_data["correct_answer"],
+                    explanation=q_data["explanation"],
+                    difficulty=DifficultyLevel(q_data["difficulty"]),
+                    topic=q_data.get("topic")
                 )
-                
-                await db.notes.insert_one(note.dict())
-            
-            logger.info(f"Generated {len(notes_data)} notes for session {session_id}")
-            
+                await db.questions.insert_one(question.dict())
+            logger.info(f"Stored {len(questions_data)} questions for session {session_id}")
         except Exception as e:
-            logger.error(f"Failed to generate notes for session {session_id}: {str(e)}")
+            logger.error(f"Failed to store questions: {str(e)}")
+    
+    async def _store_mock_test(self, session_id: str, user_id: str, mock_test_data: Dict[str, Any]):
+        """Store generated mock test in database"""
+        try:
+            if not mock_test_data:
+                return
+            
+            db = get_database()
+            mock_test = MockTest(
+                test_id=str(uuid.uuid4()),
+                session_id=session_id,
+                user_id=user_id,
+                test_name=mock_test_data["name"],
+                questions=mock_test_data["questions"],
+                duration_minutes=mock_test_data["duration_minutes"],
+                total_questions=mock_test_data["total_questions"]
+            )
+            await db.mock_tests.insert_one(mock_test.dict())
+            logger.info(f"Stored mock test for session {session_id}")
+        except Exception as e:
+            logger.error(f"Failed to store mock test: {str(e)}")
+    
+    async def _store_mnemonics(self, session_id: str, user_id: str, mnemonics_data: List[Dict[str, Any]]):
+        """Store generated mnemonics in database"""
+        try:
+            db = get_database()
+            for m_data in mnemonics_data:
+                mnemonic = Mnemonic(
+                    mnemonic_id=str(uuid.uuid4()),
+                    session_id=session_id,
+                    user_id=user_id,
+                    topic=m_data["topic"],
+                    mnemonic_text=m_data["mnemonic"],
+                    explanation=m_data["explanation"],
+                    key_terms=m_data.get("key_terms", [])
+                )
+                await db.mnemonics.insert_one(mnemonic.dict())
+            logger.info(f"Stored {len(mnemonics_data)} mnemonics for session {session_id}")
+        except Exception as e:
+            logger.error(f"Failed to store mnemonics: {str(e)}")
+    
+    async def _store_cheat_sheet(self, session_id: str, user_id: str, cheat_sheet_data: Dict[str, Any]):
+        """Store generated cheat sheet in database"""
+        try:
+            if not cheat_sheet_data:
+                return
+            
+            db = get_database()
+            cheat_sheet = CheatSheet(
+                sheet_id=str(uuid.uuid4()),
+                session_id=session_id,
+                user_id=user_id,
+                title=cheat_sheet_data["title"],
+                key_points=cheat_sheet_data["key_points"],
+                high_yield_facts=cheat_sheet_data["high_yield_facts"],
+                quick_references=cheat_sheet_data.get("quick_references", {})
+            )
+            await db.cheat_sheets.insert_one(cheat_sheet.dict())
+            logger.info(f"Stored cheat sheet for session {session_id}")
+        except Exception as e:
+            logger.error(f"Failed to store cheat sheet: {str(e)}")
+    
+    async def _store_notes(self, session_id: str, user_id: str, notes_data: Dict[str, Any]):
+        """Store generated notes in database"""
+        try:
+            if not notes_data:
+                return
+            
+            db = get_database()
+            note = Note(
+                note_id=str(uuid.uuid4()),
+                session_id=session_id,
+                user_id=user_id,
+                title=notes_data["title"],
+                content=notes_data["content"],
+                important_questions=[],
+                summary_points=notes_data.get("summary_points", []),
+                related_mnemonics=[]
+            )
+            await db.notes.insert_one(note.dict())
+            logger.info(f"Stored notes for session {session_id}")
+        except Exception as e:
+            logger.error(f"Failed to store notes: {str(e)}")

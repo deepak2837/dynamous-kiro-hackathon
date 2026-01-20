@@ -144,7 +144,7 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                           <div
                             key={optIndex}
                             className={`p-2 rounded ${
-                              optIndex === question.correct_answer
+                              option.is_correct
                                 ? 'bg-green-50 border border-green-200'
                                 : 'bg-gray-50'
                             }`}
@@ -152,8 +152,8 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                             <span className="font-medium">
                               {String.fromCharCode(65 + optIndex)}.
                             </span>{' '}
-                            {option}
-                            {optIndex === question.correct_answer && (
+                            {option.text}
+                            {option.is_correct && (
                               <span className="text-green-600 ml-2">✓</span>
                             )}
                           </div>
@@ -277,7 +277,7 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                         </div>
                       </div>
 
-                      {Object.keys(sheet.quick_references).length > 0 && (
+                      {sheet.quick_references && Object.keys(sheet.quick_references).length > 0 && (
                         <div className="mt-4 pt-4 border-t border-gray-200">
                           <h4 className="font-medium text-gray-900 mb-2">Quick References</h4>
                           <div className="grid gap-2">

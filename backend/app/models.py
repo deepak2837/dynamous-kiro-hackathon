@@ -1,23 +1,57 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime
 from enum import Enum
 
 class ProcessingMode(str, Enum):
-    DEFAULT = "default"
-    OCR = "ocr"
-    AI_BASED = "ai_based"
+    OCR_AI = "ocr_ai"
+    AI_ONLY = "ai_only"
+
+class DocumentType(str, Enum):
+    CONTAINS_QUESTIONS = "contains_questions"
+    STUDY_NOTES = "study_notes"
+    MIXED = "mixed"
 
 class DifficultyLevel(str, Enum):
     EASY = "easy"
     MEDIUM = "medium"
     HARD = "hard"
 
+class ProcessingStep(str, Enum):
+    UPLOAD_COMPLETE = "upload_complete"
+    FILE_ANALYSIS = "file_analysis"
+    OCR_PROCESSING = "ocr_processing"
+    AI_PROCESSING = "ai_processing"
+    GENERATING_QUESTIONS = "generating_questions"
+    GENERATING_MOCK_TESTS = "generating_mock_tests"
+    GENERATING_MNEMONICS = "generating_mnemonics"
+    GENERATING_CHEAT_SHEETS = "generating_cheat_sheets"
+    GENERATING_NOTES = "generating_notes"
+    FINALIZING = "finalizing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
 class SessionStatus(str, Enum):
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
+
+# Batching Models
+class TextBatch(BaseModel):
+    batch_id: str = Field(..., description="Unique batch identifier")
+    session_id: str = Field(..., description="Associated session")
+    page_range: Tuple[int, int] = Field(..., description="Start and end page numbers")
+    text_content: str = Field(..., description="Extracted text from pages")
+    batch_number: int = Field(..., description="Batch sequence number (1-indexed)")
+    total_batches: int = Field(..., description="Total number of batches in session")
+
+class BatchContent(BaseModel):
+    batch_id: str = Field(..., description="Associated batch identifier")
+    questions: List[Dict[str, Any]] = Field(default=[], description="Generated questions")
+    mnemonics: List[Dict[str, Any]] = Field(default=[], description="Generated mnemonics")
+    cheat_sheet_points: List[str] = Field(default=[], description="Cheat sheet key points")
+    key_concepts: List[str] = Field(default=[], description="Key concepts identified")
 
 # Base Models
 class StudySession(BaseModel):
@@ -29,6 +63,20 @@ class StudySession(BaseModel):
     s3_keys: List[Optional[str]] = Field(default=[], description="List of S3 keys (None for local files)")
     processing_mode: ProcessingMode = Field(..., description="Processing mode used")
     status: SessionStatus = Field(default=SessionStatus.PENDING, description="Current status")
+    
+    # Progress tracking
+    current_step: Optional[ProcessingStep] = Field(None, description="Current processing step")
+    step_progress: int = Field(default=0, description="Progress of current step (0-100)")
+    overall_progress: int = Field(default=0, description="Overall progress (0-100)")
+    estimated_time_remaining: Optional[int] = Field(None, description="Estimated time remaining in seconds")
+    pages_processed: Optional[int] = Field(None, description="Number of pages processed")
+    total_pages: Optional[int] = Field(None, description="Total number of pages")
+    step_message: Optional[str] = Field(None, description="Current step message")
+    
+    # Email notification
+    email_notification_enabled: bool = Field(default=False, description="Email notification on completion")
+    notification_email: Optional[str] = Field(None, description="Email for notifications")
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
     error_message: Optional[str] = None
@@ -89,19 +137,43 @@ class Note(BaseModel):
 
 # Request/Response Models
 class UploadRequest(BaseModel):
-    processing_mode: ProcessingMode = ProcessingMode.DEFAULT
+    processing_mode: ProcessingMode = ProcessingMode.OCR_AI
 
 class UploadResponse(BaseModel):
     session_id: str
     message: str
     files_uploaded: int
 
+class ProcessingStep(str, Enum):
+    UPLOAD_COMPLETE = "upload_complete"
+    FILE_ANALYSIS = "file_analysis"
+    OCR_PROCESSING = "ocr_processing"
+    AI_PROCESSING = "ai_processing"
+    GENERATING_QUESTIONS = "generating_questions"
+    GENERATING_MOCK_TESTS = "generating_mock_tests"
+    GENERATING_MNEMONICS = "generating_mnemonics"
+    GENERATING_CHEAT_SHEETS = "generating_cheat_sheets"
+    GENERATING_NOTES = "generating_notes"
+    FINALIZING = "finalizing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+class ProcessingProgress(BaseModel):
+    current_step: ProcessingStep
+    step_progress: int  # 0-100 for current step
+    overall_progress: int  # 0-100 overall
+    estimated_time_remaining: Optional[int] = None  # seconds
+    pages_processed: Optional[int] = None
+    total_pages: Optional[int] = None
+    step_message: Optional[str] = None
+
 class ProcessingStatusResponse(BaseModel):
     session_id: str
     status: SessionStatus
-    progress_percentage: Optional[int] = None
+    progress: Optional[ProcessingProgress] = None
     message: Optional[str] = None
     error_message: Optional[str] = None
+    email_notification_enabled: bool = False
 
 class SessionListResponse(BaseModel):
     sessions: List[StudySession]

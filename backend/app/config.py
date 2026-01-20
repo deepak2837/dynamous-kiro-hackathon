@@ -42,6 +42,16 @@ class Settings(BaseSettings):
     # File Storage
     upload_dir: str = os.getenv("UPLOAD_DIR", "./uploads")
     max_file_size: int = 52428800  # 50MB
+    max_images_per_upload: int = int(os.getenv("MAX_IMAGES_PER_UPLOAD", "25"))
+    
+    # File size limits (in bytes)
+    max_pdf_size: int = int(os.getenv("MAX_PDF_SIZE", "50485760"))  # 48MB
+    max_image_size: int = int(os.getenv("MAX_IMAGE_SIZE", "10485760"))  # 10MB  
+    max_slide_size: int = int(os.getenv("MAX_SLIDE_SIZE", "104857600"))  # 100MB
+    
+    # Upload restrictions
+    upload_cooldown_minutes: int = int(os.getenv("UPLOAD_COOLDOWN_MINUTES", "5"))
+    enable_upload_restrictions: bool = os.getenv("ENABLE_UPLOAD_RESTRICTIONS", "true").lower() == "true"
     
     # OCR Scripts
     ocr_scripts_path: str = "/home/unknown/Documents/medgloss-data-extractorfiles"
@@ -58,6 +68,9 @@ class Settings(BaseSettings):
     # Upload Restrictions
     restrict_upload_timing: bool = os.getenv("RESTRICT_UPLOAD_TIMING", "true").lower() == "true"
     upload_cooldown_minutes: int = int(os.getenv("UPLOAD_COOLDOWN_MINUTES", "5"))
+    
+    # Rate Limiting
+    enable_rate_limiting: bool = os.getenv("ENABLE_RATE_LIMITING", "true").lower() == "true"
     
     # AWS S3 Configuration
     aws_access_key_id: str = os.getenv("AWS_ACCESS_KEY_ID", "")

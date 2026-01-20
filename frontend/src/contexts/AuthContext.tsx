@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import ErrorLogger from '@/utils/errorLogger';
 
 interface User {
   id: string;
@@ -69,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Initialize auth state from localStorage
   useEffect(() => {
-    const initAuth = async () => {
+    const initAuth = () => {
       try {
         const storedToken = localStorage.getItem('auth_token');
         const storedUser = localStorage.getItem('auth_user');
@@ -77,35 +78,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (storedToken && storedUser) {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
-          
-          // Verify token is still valid
-          const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
-            headers: {
-              'Authorization': `Bearer ${storedToken}`,
-            },
-          });
-
-          if (!response.ok) {
-            // Token is invalid, clear auth state
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('auth_user');
-            setToken(null);
-            setUser(null);
-          }
         }
       } catch (error) {
+        ErrorLogger.logError(error as Error, 'auth_initialization', undefined, { storedToken: !!storedToken });
         console.error('Error initializing auth:', error);
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
         setToken(null);
         setUser(null);
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     };
 
+    // Set timeout to prevent infinite loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+
     initAuth();
-  }, [API_BASE_URL]);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const normalizePhoneNumber = (phone: string): string => {
     phone = phone.trim();
@@ -137,6 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return { exists: false };
     } catch (error) {
+      ErrorLogger.logError(error as Error, 'check_user_exists', undefined, { mobile_number });
       console.error('Error checking user exists:', error);
       return { exists: false };
     }
@@ -159,6 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return response.ok;
     } catch (error) {
+      ErrorLogger.logError(error as Error, 'send_otp', undefined, { mobile_number, otp_method });
       console.error('Error sending OTP:', error);
       return false;
     }

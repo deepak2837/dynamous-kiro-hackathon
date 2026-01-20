@@ -1,0 +1,22 @@
+Human Anatomy - Cardiovascular System
+
+The heart is a muscular organ that pumps blood throughout the body. It has four chambers: two atria and two ventricles.
+
+Key Points:
+- Right atrium receives deoxygenated blood from the body
+- Left atrium receives oxygenated blood from the lungs  
+- Right ventricle pumps blood to the lungs
+- Left ventricle pumps blood to the body
+
+The cardiac cycle consists of systole (contraction) and diastole (relaxation).
+
+Important structures:
+- Aorta: Main artery carrying blood from left ventricle
+- Pulmonary artery: Carries blood from right ventricle to lungs
+- Tricuspid valve: Between right atrium and ventricle
+- Mitral valve: Between left atrium and ventricle
+
+Clinical correlations:
+- Heart failure occurs when the heart cannot pump effectively
+- Myocardial infarction (heart attack) results from blocked coronary arteries
+- Arrhythmias are abnormal heart rhythms

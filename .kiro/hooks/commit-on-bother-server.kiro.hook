@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Auto-commit on \"run bother server\"",
+  "description": "Automatically commits existing code with a proper commit message when the user mentions \"run bother server\" in their prompt",
+  "version": "1",
+  "when": {
+    "type": "promptSubmit"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "if echo \"$PROMPT\" | grep -qi \"run both server\"; then git add -A && git commit -m \"chore: commit changes before running both servers\"; fi"
+  }
+}

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from pymongo.collection import Collection
 from bson import ObjectId
-from app.auth_models import UserDB, UserResponse, UserRole, OTPMethod
+from app.auth_models_simple import UserDB, UserResponse, UserRole, OTPMethod
 from app.database import get_database
 from app.config import settings
 
@@ -12,8 +12,14 @@ class AuthService:
     """Authentication service for user management"""
     
     def __init__(self):
-        self.db = get_database()
-        self.users_collection: Collection = self.db.users
+        self.db = None
+        self.users_collection = None
+    
+    def get_db(self):
+        if self.db is None:
+            self.db = get_database()
+            self.users_collection = self.db.users
+        return self.db
     
     def normalize_phone_number(self, phone: str) -> str:
         """Normalize phone number format"""
@@ -58,6 +64,7 @@ class AuthService:
     
     async def user_exists(self, mobile_number: str) -> tuple[bool, bool]:
         """Check if user exists and is verified"""
+        self.get_db()
         mobile_number = self.normalize_phone_number(mobile_number)
         user = self.users_collection.find_one({"mobile_number": mobile_number})
         

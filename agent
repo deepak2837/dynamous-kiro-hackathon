@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# Simple command wrapper for server management
+case "$1" in
+    "run both servers"|"run both server"|"start servers"|"start")
+        echo "🚀 Starting intelligent server agent..."
+        python3 server_agent.py
+        ;;
+    "stop"|"kill")
+        echo "🛑 Stopping servers..."
+        fuser -k 3000/tcp 8000/tcp 2>/dev/null || true
+        pkill -f "npm run dev" 2>/dev/null || true
+        pkill -f "uvicorn" 2>/dev/null || true
+        echo "✅ Servers stopped"
+        ;;
+    "status"|"check")
+        echo "📊 Checking server status..."
+        if curl -s http://localhost:8000/health > /dev/null; then
+            echo "✅ Backend: Running (http://localhost:8000)"
+        else
+            echo "❌ Backend: Not running"
+        fi
+        
+        if curl -s http://localhost:3000 > /dev/null; then
+            echo "✅ Frontend: Running (http://localhost:3000)"
+        else
+            echo "❌ Frontend: Not running"
+        fi
+        ;;
+    "logs")
+        echo "📋 Showing recent logs..."
+        echo "--- Backend Logs ---"
+        tail -n 10 logs/backend.log 2>/dev/null || echo "No backend logs"
+        echo ""
+        echo "--- Frontend Logs ---"
+        tail -n 10 logs/frontend.log 2>/dev/null || echo "No frontend logs"
+        ;;
+    *)
+        echo "🤖 Intelligent Server Management Agent"
+        echo ""
+        echo "Usage: $0 [command]"
+        echo ""
+        echo "Commands:"
+        echo "  'run both servers'  - Start both servers with monitoring"
+        echo "  'stop'              - Stop all servers"
+        echo "  'status'            - Check server status"
+        echo "  'logs'              - Show recent logs"
+        echo ""
+        echo "Examples:"
+        echo "  $0 'run both servers'"
+        echo "  $0 status"
+        echo "  $0 stop"
+        ;;
+esac

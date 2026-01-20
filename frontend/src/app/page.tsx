@@ -1,17 +1,25 @@
 "use client";
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { FiUser, FiLogOut } from 'react-icons/fi';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomePage() {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
 
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading StudyBuddy...</p>
+        </div>
       </div>
     );
   }
@@ -22,7 +30,9 @@ export default function HomePage() {
       {user && (
         <div className="bg-white rounded-lg shadow-sm border p-4 flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <FiUser className="h-8 w-8 text-indigo-600" />
+            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+              <FiUser className="h-5 w-5 text-indigo-600" />
+            </div>
             <div>
               <h3 className="font-semibold text-gray-900">Welcome back, {user.name}!</h3>
               <p className="text-sm text-gray-600">
@@ -30,13 +40,19 @@ export default function HomePage() {
               </p>
             </div>
           </div>
-          <button
-            onClick={logout}
-            className="flex items-center space-x-2 text-gray-600 hover:text-red-600 transition-colors"
-          >
-            <FiLogOut className="h-5 w-5" />
-            <span>Logout</span>
-          </button>
+          <div className="flex items-center space-x-4">
+            <button className="flex items-center space-x-2 text-gray-600 hover:text-indigo-600 transition-colors">
+              <FiUser className="h-5 w-5" />
+              <span>Profile</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <FiLogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -52,12 +68,28 @@ export default function HomePage() {
         </p>
         
         {user ? (
-          <Link 
-            href="/study-buddy" 
-            className="btn-primary text-lg px-8 py-3 inline-block"
-          >
-            Start Studying 🚀
-          </Link>
+          <div className="space-y-6">
+            <Link 
+              href="/study-buddy" 
+              className="btn-primary text-lg px-8 py-3 inline-block"
+            >
+              Start Studying 🚀
+            </Link>
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">Or upload files directly:</p>
+              <div className="max-w-2xl mx-auto">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors cursor-pointer">
+                  <div className="text-4xl mb-4">📁</div>
+                  <p className="text-gray-600 mb-2">
+                    Drag & drop files here, or <span className="text-blue-600">click to select</span>
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Supports PDF, JPG, PNG, PPTX (max 50MB each)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="space-x-4">
             <Link 

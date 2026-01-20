@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
 import asyncio
 
-from app.auth_models import (
+from app.auth_models_simple import (
     UserRegisterRequest, UserLoginRequest, SendOTPRequest, VerifyOTPRequest,
     ForgotPasswordRequest, ResetPasswordRequest, UserExistsRequest,
     TokenResponse, MessageResponse, UserExistsResponse, UserResponse
@@ -66,7 +66,7 @@ async def send_registration_otp(request: SendOTPRequest):
         otp = OTPService.generate_otp()
         
         # Send OTP
-        success = await otp_service.send_otp(
+        success = await OTPService.send_otp(
             mobile_number=request.mobile_number,
             otp=otp,
             method=request.otp_method,

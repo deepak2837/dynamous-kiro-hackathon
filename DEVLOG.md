@@ -9,6 +9,147 @@
 
 ---
 
+## 2026-01-20 | Selenium E2E Testing Implementation
+
+### Time: 11:50 - 12:00 IST
+
+#### Activities
+1. **End-to-End Browser Testing**
+   - Implemented comprehensive Selenium WebDriver test suite
+   - Tests complete user journey from login to results verification
+   - Automatic screenshot capture at each step
+   - Detailed timestamped logging
+
+2. **Test Coverage**
+   - Login flow with credential validation
+   - Navigation to Study Buddy page
+   - File upload with processing mode selection
+   - Real-time processing status monitoring
+   - Verification of all 5 output types
+
+3. **Testing Documentation**
+   - Created comprehensive `docs/TESTING.md`
+   - Documented both API and browser testing approaches
+   - Added troubleshooting guide
+   - Included CI/CD integration examples
+
+#### Technical Implementation
+
+**Selenium Test Features**
+- Visual browser testing (non-headless by default)
+- Screenshot capture at each step for debugging
+- Timestamped logging for action tracking
+- Error handling with automatic screenshots
+- Session ID extraction from page content
+- Tab navigation testing for results viewer
+
+**Test Flow**
+1. Navigate to login page
+2. Enter credentials and submit
+3. Navigate to Study Buddy page
+4. Select and upload test file
+5. Monitor processing status (up to 2 minutes)
+6. Verify all 5 outputs are displayed
+7. Test tab navigation through results
+
+**Documentation Updates**
+- Updated README.md with Selenium test information
+- Created comprehensive TESTING.md guide
+- Added troubleshooting section for browser tests
+- Documented test comparison (API vs Browser)
+
+#### Current Status
+- ✅ API-based E2E test working (`test_full_flow.py`)
+- ✅ Browser-based E2E test implemented (`test_e2e_selenium.py`)
+- ✅ Comprehensive testing documentation created
+- ✅ Screenshot debugging capability added
+- ✅ Both test types validated and documented
+
+#### Next Steps
+- [ ] Add tests for multiple file upload
+- [ ] Test different processing modes (OCR, AI-based)
+- [ ] Add download functionality tests
+- [ ] Implement visual regression testing
+- [ ] Add performance benchmarks
+
+---
+
+## 2026-01-20 | Backend Configuration & Authentication System
+
+### Time: 11:30 - 11:45 IST
+
+#### Activities
+1. **Backend API Structure**
+   - Configured FastAPI with lifespan management
+   - Implemented CORS middleware for frontend communication
+   - Added request logging middleware for debugging
+   - Integrated rate limiting with slowapi
+
+2. **Authentication System**
+   - Implemented user registration with mobile/email
+   - Added OTP verification (SMS via Fast2SMS, Email via SMTP)
+   - JWT token-based authentication
+   - Backward compatibility endpoint for `/login`
+
+3. **File Upload System**
+   - Multi-file upload support
+   - Dual storage: Local filesystem and AWS S3
+   - Upload restrictions and cooldown periods
+   - File size validation per type (PDF, images, slides)
+
+4. **API Routes Implemented**
+   - Authentication: `/api/v1/auth/*`
+   - Upload: `/api/v1/upload/*`
+   - Content: `/api/v1/questions/*`, `/api/v1/mock-tests/*`, etc.
+   - S3 Testing: `/api/v1/s3-test/*`
+
+#### Technical Implementation
+
+**Backend Features**
+- Async MongoDB connection with Motor
+- Rate limiting (configurable)
+- CORS for localhost:3000 and localhost:3001
+- Request/response logging with timing
+- Automatic upload directory creation
+- Graceful startup/shutdown
+
+**Storage Configuration**
+- Local storage: `./uploads` directory
+- S3 storage: Configurable bucket and region
+- Automatic fallback to local if S3 fails
+- Environment-based storage selection
+
+**Security Features**
+- JWT authentication on protected endpoints
+- Password hashing with bcrypt
+- OTP verification for registration
+- Rate limiting to prevent abuse
+- File type and size validation
+
+#### Configuration Updates
+- Updated `.env` with comprehensive settings
+- Added AWS S3 credentials
+- Configured OTP services (SMS and Email)
+- Set file size limits per type
+- Enabled upload restrictions
+
+#### Current Status
+- ✅ Backend server running on port 8000
+- ✅ Frontend server running on port 3001
+- ✅ MongoDB connected successfully
+- ✅ Authentication system functional
+- ✅ File upload working (with S3 signature issue to fix)
+- ⚠️ S3 upload failing due to signature mismatch
+
+#### Next Steps
+- [ ] Fix AWS S3 signature issue
+- [ ] Implement AI content generation
+- [ ] Add session history endpoints
+- [ ] Complete frontend-backend integration
+- [ ] Test end-to-end upload flow
+
+---
+
 ## 2026-01-19 | Initial Setup & Planning
 
 ### Time: 18:50 - 19:00 IST

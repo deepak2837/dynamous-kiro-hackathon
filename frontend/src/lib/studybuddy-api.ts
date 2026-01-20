@@ -33,7 +33,7 @@ export class StudyBuddyAPI {
       formData.append('files', file);
     });
     formData.append('processing_mode', processingMode);
-    formData.append('user_id', userId);
+    // Note: user_id is now obtained from JWT token on backend
 
     const response = await apiClient.post('/upload', formData, {
       headers: {

@@ -1,16 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import FileUpload from '@/components/FileUpload';
 import ProcessingStatus from '@/components/ProcessingStatus';
 import ResultsViewer from '@/components/ResultsViewer';
+import SessionHistory from '@/components/SessionHistory';
 
 type AppState = 'upload' | 'processing' | 'results';
 
 export default function StudyBuddyPage() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
   const [appState, setAppState] = useState<AppState>('upload');
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [error, setError] = useState<string>('');
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isLoading, router]);
+
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading StudyBuddy...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated
+  if (!user) {
+    return null;
+  }
 
   const handleUploadSuccess = (sessionId: string) => {
     setCurrentSessionId(sessionId);
@@ -29,6 +58,12 @@ export default function StudyBuddyPage() {
   const handleStartNew = () => {
     setAppState('upload');
     setCurrentSessionId('');
+    setError('');
+  };
+
+  const handleSessionSelect = (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+    setAppState('results');
     setError('');
   };
 
@@ -148,6 +183,9 @@ export default function StudyBuddyPage() {
           </div>
         </div>
       </div>
+
+      {/* Session History */}
+      <SessionHistory onSessionSelect={handleSessionSelect} />
     </div>
   );
 }

@@ -1,11 +1,14 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from app.models import QuestionListResponse, Question
 from app.database import get_database
+from app.middleware.rate_limit import api_rate_limit
 
 router = APIRouter()
 
 @router.get("/{session_id}", response_model=QuestionListResponse)
+@api_rate_limit()
 async def get_session_questions(
+    request: Request,
     session_id: str,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
