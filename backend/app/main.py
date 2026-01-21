@@ -78,17 +78,17 @@ async def login_compatibility(request: UserLoginRequest):
     """Backward compatibility endpoint for /login"""
     return await auth_login_user(request)
 
-# Add basic upload routes for frontend
-from app.api.upload_basic import router as upload_basic_router
-app.include_router(upload_basic_router, prefix="/api/v1/upload")
+# Add v1 API router (includes text-input, upload, sessions, etc.)
+from app.api.v1.api import api_router
+app.include_router(api_router, prefix="/api/v1")
 
 # Add history routes
 from app.api.history import router as history_router
 app.include_router(history_router)
 
-# Add v1 API router (includes text-input, upload, sessions, etc.)
-from app.api.v1.api import api_router
-app.include_router(api_router, prefix="/api/v1")
+# Add test endpoint for AI_ONLY processing
+from app.api.test_ai_only import router as test_ai_only_router
+app.include_router(test_ai_only_router, prefix="/api/v1")
 
 # Add real content routes
 from app.api.v1.endpoints.questions import router as questions_router

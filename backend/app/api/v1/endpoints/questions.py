@@ -3,7 +3,6 @@ from fastapi import APIRouter, Request, HTTPException
 import logging
 
 from app.database import get_database
-from app.utils.db_helpers import clean_mongo_document
 
 logger = logging.getLogger(__name__)
 
@@ -16,16 +15,6 @@ async def get_questions_by_session(session_id: str, skip: int = 0, limit: int = 
     # First try to get from questions collection
     cursor = db.questions.find({"session_id": session_id}).skip(skip).limit(limit)
     questions = await cursor.to_list(length=limit)
-    
-    # Clean MongoDB documents
-    questions = clean_mongo_document(questions)
-    
-    logger.info(f"Found {len(questions)} questions for session {session_id}")
-    if questions:
-        sample = questions[0]
-        logger.info(f"Sample question keys: {list(sample.keys())}")
-        logger.info(f"Sample question_text: {sample.get('question_text', 'MISSING')[:50]}...")
-        logger.info(f"Sample options: {sample.get('options', 'MISSING')}")
     
     # If no questions found, try to get from sessions/uploads collection
     if not questions:
@@ -66,26 +55,30 @@ async def get_session_questions(
     transformed_questions = []
     for q in questions:
         try:
-            # Handle options - convert from array to dict format
+            # Handle options - convert from array of strings to dict
             options = q.get("options", [])
             correct = q.get("correct_answer", 0)
             
             if isinstance(options, list) and len(options) > 0:
-                # Convert array to dict format (A, B, C, D)
-                options_dict = {}
-                for i, option_text in enumerate(options):
-                    option_key = chr(65 + i)  # A, B, C, D
-                    options_dict[option_key] = str(option_text)
-                options = options_dict
-                
-                # Convert numeric correct_answer to letter
-                if isinstance(correct, int) and 0 <= correct < len(options):
-                    correct = chr(65 + correct)  # 0->A, 1->B, etc.
-            elif isinstance(options, dict):
-                # Already in dict format
-                pass
-            else:
-                options = {}
+                # If options is array of strings like ['A) Text', 'B) Text']
+                if isinstance(options[0], str):
+                    options_dict = {}
+                    for i, opt_text in enumerate(options):
+                        option_key = chr(65 + i)  # A, B, C, D
+                        options_dict[option_key] = opt_text
+                    options = options_dict
+                    # Convert numeric correct_answer to letter
+                    if isinstance(correct, int) and correct < len(options_dict):
+                        correct = chr(65 + correct)
+                # If options is array of dicts
+                elif isinstance(options[0], dict):
+                    options_dict = {}
+                    for opt in options:
+                        opt_id = opt.get("option_id", "").upper()
+                        options_dict[opt_id] = opt.get("text", "")
+                        if opt.get("is_correct"):
+                            correct = opt_id
+                    options = options_dict
             
             # Normalize difficulty to lowercase
             difficulty = q.get("difficulty", "medium")
@@ -97,7 +90,7 @@ async def get_session_questions(
                 "id": str(q.get("_id", q.get("id", ""))),
                 "session_id": q.get("session_id", session_id),
                 "user_id": q.get("user_id", "anonymous"),
-                "question": q.get("question_text", q.get("question", "")),  # Handle both field names
+                "question": q.get("question_text", q.get("question", "")),
                 "options": options,
                 "correct_answer": correct,
                 "explanation": q.get("explanation", ""),

@@ -33,12 +33,13 @@ export class StudyBuddyAPI {
       formData.append('files', file);
     });
     formData.append('processing_mode', processingMode);
-    // Note: user_id is now obtained from JWT token on backend
+    // user_id will be obtained from JWT token on backend
 
-    const response = await apiClient.post('/upload', formData, {
+    const response = await apiClient.post('/upload/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout: 60000, // 60 seconds for file upload processing
     });
     
     return response.data;

@@ -11,6 +11,7 @@ from app.services.ai_service import AIService
 from app.services.file_processor import FileProcessor
 from app.services.content_aggregator import ContentAggregator
 from app.services.mock_test_generator import MockTestGenerator
+from app.services.file_upload_processing_service import FileUploadProcessingService
 from app.services.s3_service import s3_service
 from app.services.progress_tracker import ProgressTracker
 from app.utils.error_handler import ErrorHandler, RecoveryAction
@@ -22,10 +23,28 @@ class ProcessingService:
         self.file_processor = FileProcessor()
         self.content_aggregator = ContentAggregator()
         self.mock_test_generator = MockTestGenerator()
+        self.file_upload_processor = FileUploadProcessingService()
     
     async def start_processing(self, session_id: str, files: List[str], mode: ProcessingMode, user_id: str):
         """Start async processing of uploaded files with batching and progress tracking"""
         try:
+            logger.info(f"🔍 PROCESSING MODE DETECTION:")
+            logger.info(f"   - Mode received: {mode}")
+            logger.info(f"   - Mode type: {type(mode)}")
+            logger.info(f"   - ProcessingMode.AI_ONLY: {ProcessingMode.AI_ONLY}")
+            logger.info(f"   - Mode == AI_ONLY: {mode == ProcessingMode.AI_ONLY}")
+            logger.info(f"   - Mode string value: '{str(mode)}'")
+            logger.info(f"   - String comparison: {str(mode) == 'ai_only'}")
+            
+            # Check if this should use comprehensive AI processing (like topic feature)
+            if mode == ProcessingMode.AI_ONLY or str(mode) == "ai_only":
+                logger.info(f"✅ USING AI_ONLY MODE - COMPREHENSIVE PROCESSING LIKE TOPIC FEATURE")
+                await self.file_upload_processor.process_uploaded_files(session_id, user_id)
+                return
+            
+            # Original OCR_AI processing logic with batching
+            logger.info(f"📊 USING OCR_AI MODE - BATCH PROCESSING")
+            
             # Initialize progress tracking
             await ProgressTracker.update_progress(
                 session_id, 

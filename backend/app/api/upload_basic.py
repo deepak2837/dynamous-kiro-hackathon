@@ -13,8 +13,6 @@ import asyncio
 import json
 import pymongo
 import logging
-import PyPDF2
-import io
 
 router = APIRouter()
 security = HTTPBearer()
@@ -388,45 +386,21 @@ async def get_processing_status(
     current_user: UserResponse = Depends(get_current_user)
 ):
     """Get processing status - requires authentication"""
-    # First check in-memory storage (for file uploads)
-    if session_id in session_storage:
-        session = session_storage[session_id]
-        
-        # Check if session belongs to current user
-        if session["user_id"] != current_user.id:
-            raise HTTPException(status_code=403, detail="Access denied to this session")
-        
-        return {
-            "session_id": session_id,
-            "status": session["status"],
-            "message": f"Session is {session['status']}",
-            "progress": session.get("progress", 0)
-        }
+    if session_id not in session_storage:
+        raise HTTPException(status_code=404, detail="Session not found")
     
-    # If not found in memory, check database (for text input sessions)
-    try:
-        db = get_db()
-        db_session = db.study_sessions.find_one({"session_id": session_id})
-        
-        if not db_session:
-            raise HTTPException(status_code=404, detail="Session not found")
-        
-        # Check if session belongs to current user
-        if db_session["user_id"] != current_user.id:
-            raise HTTPException(status_code=403, detail="Access denied to this session")
-        
-        return {
-            "session_id": session_id,
-            "status": db_session.get("status", "pending"),
-            "message": f"Session is {db_session.get('status', 'pending')}",
-            "progress": db_session.get("overall_progress", 0)
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error checking session status: {e}")
-        raise HTTPException(status_code=500, detail="Error checking session status")
+    session = session_storage[session_id]
+    
+    # Check if session belongs to current user
+    if session["user_id"] != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied to this session")
+    
+    return {
+        "session_id": session_id,
+        "status": session["status"],
+        "message": f"Session is {session['status']}",
+        "error_message": session.get("error")
+    }
 
 @router.get("/check-upload-allowed/{user_id}")
 async def check_upload_allowed(
@@ -444,79 +418,6 @@ async def check_upload_allowed(
         "remaining_seconds": 0
     }
 
-async def extract_text_from_pdf(file_content: bytes, filename: str) -> str:
-    """Extract text from PDF file."""
-    logger.info(f"=== PDF TEXT EXTRACTION START ===")
-    logger.info(f"Filename: {filename}")
-    logger.info(f"File content size: {len(file_content)} bytes")
-    
-    text_content = ""
-    
-    try:
-        # Use PyPDF2 to extract text
-        pdf_file = io.BytesIO(file_content)
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
-        
-        num_pages = len(pdf_reader.pages)
-        logger.info(f"PDF has {num_pages} pages")
-        
-        for page_num, page in enumerate(pdf_reader.pages):
-            page_text = page.extract_text()
-            if page_text:
-                text_content += page_text + "\n"
-                logger.info(f"Page {page_num + 1}: extracted {len(page_text)} characters")
-            else:
-                logger.warning(f"Page {page_num + 1}: no text extracted (might be scanned/image)")
-        
-        logger.info(f"=== PDF TEXT EXTRACTION COMPLETE ===")
-        logger.info(f"Total extracted text length: {len(text_content)} characters")
-        logger.info(f"Extracted text preview (first 500 chars): {text_content[:500]}")
-        logger.info(f"=== END PDF TEXT ===")
-        
-        # If no text extracted, the PDF might be scanned - try OCR
-        if len(text_content.strip()) < 50:
-            logger.warning("PDF appears to be scanned or has minimal text. Attempting OCR...")
-            text_content = await extract_text_with_ocr(file_content, filename)
-        
-        return text_content
-        
-    except Exception as e:
-        logger.error(f"Error extracting PDF text: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        return ""
-
-async def extract_text_with_ocr(file_content: bytes, filename: str) -> str:
-    """Extract text from scanned PDF using OCR."""
-    logger.info("=== OCR EXTRACTION START ===")
-    
-    try:
-        # Try using pdf2image and pytesseract for OCR
-        from pdf2image import convert_from_bytes
-        import pytesseract
-        
-        images = convert_from_bytes(file_content)
-        logger.info(f"Converted PDF to {len(images)} images for OCR")
-        
-        text_content = ""
-        for i, image in enumerate(images):
-            page_text = pytesseract.image_to_string(image)
-            text_content += page_text + "\n"
-            logger.info(f"OCR Page {i + 1}: extracted {len(page_text)} characters")
-        
-        logger.info(f"=== OCR EXTRACTION COMPLETE ===")
-        logger.info(f"Total OCR text: {len(text_content)} characters")
-        logger.info(f"OCR text preview: {text_content[:500]}")
-        
-        return text_content
-        
-    except ImportError as e:
-        logger.error(f"OCR libraries not installed: {e}")
-        return ""
-    except Exception as e:
-        logger.error(f"OCR extraction failed: {e}")
-        return ""
-
 async def extract_text_from_file(file_path: str, file_type: str) -> str:
     """Extract text from uploaded file."""
     logger.info(f"=== EXTRACTING TEXT FROM FILE ===")
@@ -528,6 +429,7 @@ async def extract_text_from_file(file_path: str, file_type: str) -> str:
     try:
         if file_type == "application/pdf":
             # PDF extraction logic
+            # ...existing code...
             pass
         elif file_type.startswith("image/"):
             # OCR for images

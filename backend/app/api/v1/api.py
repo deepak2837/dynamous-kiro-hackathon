@@ -1,11 +1,11 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, gemini, sessions, questions, mock_tests, mnemonics, cheat_sheets, notes, text_input
+from app.api.v1.endpoints import auth, gemini, sessions, questions, mock_tests, mnemonics, cheat_sheets, notes, text_input, upload
 
 api_router = APIRouter()
 
 api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
 api_router.include_router(gemini.router, prefix="/gemini", tags=["ai-services"])
-# Note: upload routes are handled by upload_basic in main.py
+api_router.include_router(upload.router, prefix="/upload", tags=["upload"])
 api_router.include_router(text_input.router, prefix="/text-input", tags=["text-input"])
 api_router.include_router(sessions.router, prefix="/sessions", tags=["sessions"])
 api_router.include_router(questions.router, prefix="/questions", tags=["questions"])

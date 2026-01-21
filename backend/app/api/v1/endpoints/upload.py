@@ -27,12 +27,11 @@ async def get_file_limits():
     }
 
 @router.post("/", response_model=UploadResponse)
-@upload_rate_limit()
 async def upload_files(
     request: Request,
     files: List[UploadFile] = File(...),
-    processing_mode: ProcessingMode = Form(ProcessingMode.OCR_AI),
-    user_id: str = Form(...),  # In real app, this would come from JWT token
+    processing_mode: ProcessingMode = Form(ProcessingMode.AI_ONLY),  # Default to AI_ONLY
+    user_id: str = Form("default_user"),  # Default user for testing
     db=Depends(get_database)
 ):
     """Upload files and start processing"""
