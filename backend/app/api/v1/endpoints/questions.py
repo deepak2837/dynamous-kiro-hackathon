@@ -1,51 +1,114 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, Request
-from app.models import QuestionListResponse, Question
+from typing import List, Optional
+from fastapi import APIRouter, Request, HTTPException
+import logging
+
 from app.database import get_database
-from app.middleware.rate_limit import api_rate_limit
+from app.utils.db_helpers import clean_mongo_document
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-@router.get("/{session_id}", response_model=QuestionListResponse)
-@api_rate_limit()
+async def get_questions_by_session(session_id: str, skip: int = 0, limit: int = 50) -> List[dict]:
+    """Get questions for a session from the database."""
+    db = get_database()
+    
+    # First try to get from questions collection
+    cursor = db.questions.find({"session_id": session_id}).skip(skip).limit(limit)
+    questions = await cursor.to_list(length=limit)
+    
+    # Clean MongoDB documents
+    questions = clean_mongo_document(questions)
+    
+    logger.info(f"Found {len(questions)} questions for session {session_id}")
+    if questions:
+        sample = questions[0]
+        logger.info(f"Sample question keys: {list(sample.keys())}")
+        logger.info(f"Sample question_text: {sample.get('question_text', 'MISSING')[:50]}...")
+        logger.info(f"Sample options: {sample.get('options', 'MISSING')}")
+    
+    # If no questions found, try to get from sessions/uploads collection
+    if not questions:
+        # Check sessions collection
+        session = await db.sessions.find_one({"session_id": session_id})
+        if session and session.get("questions"):
+            questions = session.get("questions", [])[skip:skip+limit]
+        
+        # Check uploads collection
+        if not questions:
+            upload = await db.uploads.find_one({"session_id": session_id})
+            if upload and upload.get("questions"):
+                questions = upload.get("questions", [])[skip:skip+limit]
+        
+        # Check upload_status collection
+        if not questions:
+            status = await db.upload_status.find_one({"session_id": session_id})
+            if status and status.get("questions"):
+                questions = status.get("questions", [])[skip:skip+limit]
+    
+    return questions
+
+@router.get("/{session_id}", response_model=List[dict])
 async def get_session_questions(
     request: Request,
     session_id: str,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
-    difficulty: str = Query(None),
-    db=Depends(get_database)
+    skip: int = 0,
+    limit: int = 50
 ):
-    """Get questions for a specific session"""
+    """Get questions for a session"""
+    questions = await get_questions_by_session(session_id, skip, limit)
     
-    # Build query
-    query = {"session_id": session_id}
-    if difficulty:
-        query["difficulty"] = difficulty
+    if not questions:
+        logger.warning(f"No questions found for session {session_id}")
+        return []
     
-    # Get questions with pagination
-    cursor = db.questions.find(query).sort("created_at", -1)
-    questions = await cursor.skip(skip).limit(limit).to_list(length=limit)
+    # Transform database format to API format
+    transformed_questions = []
+    for q in questions:
+        try:
+            # Handle options - convert from array to dict format
+            options = q.get("options", [])
+            correct = q.get("correct_answer", 0)
+            
+            if isinstance(options, list) and len(options) > 0:
+                # Convert array to dict format (A, B, C, D)
+                options_dict = {}
+                for i, option_text in enumerate(options):
+                    option_key = chr(65 + i)  # A, B, C, D
+                    options_dict[option_key] = str(option_text)
+                options = options_dict
+                
+                # Convert numeric correct_answer to letter
+                if isinstance(correct, int) and 0 <= correct < len(options):
+                    correct = chr(65 + correct)  # 0->A, 1->B, etc.
+            elif isinstance(options, dict):
+                # Already in dict format
+                pass
+            else:
+                options = {}
+            
+            # Normalize difficulty to lowercase
+            difficulty = q.get("difficulty", "medium")
+            if isinstance(difficulty, str):
+                difficulty = difficulty.lower()
+            
+            # Build the question dict
+            question_data = {
+                "id": str(q.get("_id", q.get("id", ""))),
+                "session_id": q.get("session_id", session_id),
+                "user_id": q.get("user_id", "anonymous"),
+                "question": q.get("question_text", q.get("question", "")),  # Handle both field names
+                "options": options,
+                "correct_answer": correct,
+                "explanation": q.get("explanation", ""),
+                "difficulty": difficulty,
+                "topic": q.get("topic", "General"),
+                "question_type": q.get("question_type", "multiple_choice"),
+                "created_at": q.get("created_at"),
+            }
+            transformed_questions.append(question_data)
+        except Exception as e:
+            logger.error(f"Error transforming question: {e}")
+            continue
     
-    # Get total count
-    total_count = await db.questions.count_documents(query)
-    
-    # Convert to Pydantic models
-    question_models = [Question(**question) for question in questions]
-    
-    return QuestionListResponse(
-        questions=question_models,
-        total_count=total_count
-    )
-
-@router.get("/question/{question_id}")
-async def get_question(
-    question_id: str,
-    db=Depends(get_database)
-):
-    """Get specific question details"""
-    
-    question = await db.questions.find_one({"question_id": question_id})
-    if not question:
-        raise HTTPException(status_code=404, detail="Question not found")
-    
-    return Question(**question)
+    return transformed_questions

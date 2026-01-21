@@ -7,6 +7,10 @@ class ProcessingMode(str, Enum):
     OCR_AI = "ocr_ai"
     AI_ONLY = "ai_only"
 
+class InputType(str, Enum):
+    FILE_UPLOAD = "file_upload"
+    TEXT_INPUT = "text_input"
+
 class DocumentType(str, Enum):
     CONTAINS_QUESTIONS = "contains_questions"
     STUDY_NOTES = "study_notes"
@@ -61,7 +65,9 @@ class StudySession(BaseModel):
     files: List[str] = Field(default=[], description="List of uploaded file paths")
     file_urls: List[str] = Field(default=[], description="List of file URLs (S3 or local)")
     s3_keys: List[Optional[str]] = Field(default=[], description="List of S3 keys (None for local files)")
-    processing_mode: ProcessingMode = Field(..., description="Processing mode used")
+    processing_mode: ProcessingMode = Field(default=ProcessingMode.AI_ONLY, description="Processing mode used")
+    input_type: InputType = Field(default=InputType.FILE_UPLOAD, description="Type of input: file or text")
+    text_input: Optional[str] = Field(None, description="Topic text for text-only input mode")
     status: SessionStatus = Field(default=SessionStatus.PENDING, description="Current status")
     
     # Progress tracking

@@ -50,7 +50,7 @@ class ProgressTracker:
     ):
         """Update processing progress for a session"""
         try:
-            db = await get_database()
+            db = get_database()  # Remove await - get_database() is not async
             
             # Calculate overall progress
             overall_progress = ProgressTracker._calculate_overall_progress(step, step_progress)
@@ -144,7 +144,7 @@ class ProgressTracker:
     async def _send_completion_notification(session_id: str):
         """Send email notification when processing is complete"""
         try:
-            db = await get_database()
+            db = get_database()
             session = await db.study_sessions.find_one({"session_id": session_id})
             
             if not session or not session.get("email_notification_enabled"):
@@ -184,7 +184,7 @@ class ProgressTracker:
     async def enable_email_notification(session_id: str, email: str):
         """Enable email notification for session completion"""
         try:
-            db = await get_database()
+            db = get_database()
             await db.study_sessions.update_one(
                 {"session_id": session_id},
                 {"$set": {
@@ -201,7 +201,7 @@ class ProgressTracker:
     async def get_progress(session_id: str) -> Optional[ProcessingProgress]:
         """Get current progress for a session"""
         try:
-            db = await get_database()
+            db = get_database()
             session = await db.study_sessions.find_one({"session_id": session_id})
             
             if not session:

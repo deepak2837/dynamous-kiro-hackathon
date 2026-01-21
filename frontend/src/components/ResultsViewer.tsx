@@ -1,8 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Question, MockTest, Mnemonic, CheatSheet, Note, DifficultyLevel } from '@/types/api';
 import { StudyBuddyAPI } from '@/lib/studybuddy-api';
+import InteractiveQuestion from './InteractiveQuestion';
+import MockTestDialog from './MockTestDialog';
+import MockTestInterface from './MockTestInterface';
+import MockTestResults from './MockTestResults';
 
 interface ResultsViewerProps {
   sessionId: string;
@@ -19,6 +24,15 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Mock test states
+  const [showTestDialog, setShowTestDialog] = useState(false);
+  const [selectedTest, setSelectedTest] = useState<MockTest | null>(null);
+  const [testQuestions, setTestQuestions] = useState<Question[]>([]);
+  const [showTestInterface, setShowTestInterface] = useState(false);
+  const [showTestResults, setShowTestResults] = useState(false);
+  const [testResults, setTestResults] = useState<any[]>([]);
+  const [testTimeSpent, setTestTimeSpent] = useState(0);
+
   useEffect(() => {
     loadContent(activeTab);
   }, [activeTab, sessionId]);
@@ -29,27 +43,61 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
       switch (contentType) {
         case 'questions':
           const questionsResponse = await StudyBuddyAPI.getSessionQuestions(sessionId);
-          setQuestions(questionsResponse.questions);
+          // API returns array directly or object with questions property
+          const questionsData = Array.isArray(questionsResponse) 
+            ? questionsResponse 
+            : questionsResponse?.questions || questionsResponse || [];
+          setQuestions(questionsData);
           break;
         case 'mock-tests':
           const testsResponse = await StudyBuddyAPI.getSessionMockTests(sessionId);
-          setMockTests(testsResponse.mock_tests);
+          const testsData = Array.isArray(testsResponse)
+            ? testsResponse
+            : testsResponse?.mock_tests || testsResponse || [];
+          setMockTests(testsData);
           break;
         case 'mnemonics':
           const mnemonicsResponse = await StudyBuddyAPI.getSessionMnemonics(sessionId);
-          setMnemonics(mnemonicsResponse.mnemonics);
+          const mnemonicsData = Array.isArray(mnemonicsResponse)
+            ? mnemonicsResponse
+            : mnemonicsResponse?.mnemonics || mnemonicsResponse || [];
+          setMnemonics(mnemonicsData);
           break;
         case 'cheat-sheets':
           const sheetsResponse = await StudyBuddyAPI.getSessionCheatSheets(sessionId);
-          setCheatSheets(sheetsResponse.cheat_sheets);
+          const sheetsData = Array.isArray(sheetsResponse)
+            ? sheetsResponse
+            : sheetsResponse?.cheat_sheets || sheetsResponse || [];
+          setCheatSheets(sheetsData);
           break;
         case 'notes':
           const notesResponse = await StudyBuddyAPI.getSessionNotes(sessionId);
-          setNotes(notesResponse.notes);
+          const notesData = Array.isArray(notesResponse)
+            ? notesResponse
+            : notesResponse?.notes || notesResponse || [];
+          setNotes(notesData);
           break;
       }
     } catch (error) {
       console.error(`Failed to load ${contentType}:`, error);
+      // Reset to empty array on error
+      switch (contentType) {
+        case 'questions':
+          setQuestions([]);
+          break;
+        case 'mock-tests':
+          setMockTests([]);
+          break;
+        case 'mnemonics':
+          setMnemonics([]);
+          break;
+        case 'cheat-sheets':
+          setCheatSheets([]);
+          break;
+        case 'notes':
+          setNotes([]);
+          break;
+      }
     } finally {
       setLoading(false);
     }
@@ -68,12 +116,90 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
     }
   };
 
+  // Mock test handlers
+  const handleStartTest = async (test: MockTest) => {
+    try {
+      setSelectedTest(test);
+      setShowTestDialog(true);
+    } catch (error) {
+      console.error('Failed to prepare test:', error);
+    }
+  };
+
+  const handleTestDialogStart = async () => {
+    if (!selectedTest) return;
+    
+    try {
+      setLoading(true);
+      const response = await StudyBuddyAPI.getMockTest(selectedTest.test_id);
+      setTestQuestions(response.questions);
+      setShowTestDialog(false);
+      setShowTestInterface(true);
+    } catch (error) {
+      console.error('Failed to load test questions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestSubmit = (answers: Record<string, string>, timeSpent: number) => {
+    if (!selectedTest || !testQuestions.length) return;
+
+    const results = testQuestions.map(question => {
+      const userAnswer = answers[question.question_id];
+      const options = question.options || [];
+      const isStringArray = options.length > 0 && typeof options[0] === 'string';
+      
+      let correctAnswer, isCorrect;
+      if (isStringArray) {
+        const correctIndex = question.correct_answer || 0;
+        correctAnswer = correctIndex.toString();
+        isCorrect = userAnswer === correctIndex.toString();
+      } else {
+        const correctOption = options.find(opt => opt.is_correct);
+        correctAnswer = correctOption?.option_id || '';
+        isCorrect = userAnswer === correctOption?.option_id;
+      }
+
+      return {
+        questionId: question.question_id,
+        userAnswer: userAnswer || '',
+        correctAnswer,
+        isCorrect,
+        question
+      };
+    });
+
+    setTestResults(results);
+    setTestTimeSpent(timeSpent);
+    setShowTestInterface(false);
+    setShowTestResults(true);
+  };
+
+  const handleTestExit = () => {
+    setShowTestInterface(false);
+    setSelectedTest(null);
+    setTestQuestions([]);
+  };
+
+  const handleResultsClose = () => {
+    setShowTestResults(false);
+    setSelectedTest(null);
+    setTestQuestions([]);
+    setTestResults([]);
+  };
+
+  const handleRetakeTest = () => {
+    setShowTestResults(false);
+    setShowTestDialog(true);
+  };
+
   const tabs = [
-    { id: 'questions', label: 'Questions', icon: '❓', count: questions.length },
-    { id: 'mock-tests', label: 'Mock Tests', icon: '📊', count: mockTests.length },
-    { id: 'mnemonics', label: 'Mnemonics', icon: '🧠', count: mnemonics.length },
-    { id: 'cheat-sheets', label: 'Cheat Sheets', icon: '📋', count: cheatSheets.length },
-    { id: 'notes', label: 'Notes', icon: '📖', count: notes.length },
+    { id: 'questions', label: 'Questions', icon: '❓', count: questions?.length || 0 },
+    { id: 'mock-tests', label: 'Mock Tests', icon: '📊', count: mockTests?.length || 0 },
+    { id: 'mnemonics', label: 'Mnemonics', icon: '🧠', count: mnemonics?.length || 0 },
+    { id: 'cheat-sheets', label: 'Cheat Sheets', icon: '📋', count: cheatSheets?.length || 0 },
+    { id: 'notes', label: 'Notes', icon: '📖', count: notes?.length || 0 },
   ];
 
   return (
@@ -116,56 +242,23 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
           <div>
             {/* Questions Tab */}
             {activeTab === 'questions' && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {questions.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     No questions generated yet.
                   </div>
                 ) : (
-                  questions.map((question, index) => (
-                    <div key={question.question_id} className="card">
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-medium text-gray-900">
-                          Q{index + 1}. {question.question_text}
-                        </h3>
-                        <div className="flex space-x-2">
-                          <span className={getDifficultyClass(question.difficulty)}>
-                            {question.difficulty}
-                          </span>
-                          {question.topic && (
-                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                              {question.topic}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="space-y-2 mb-4">
-                        {question.options.map((option, optIndex) => (
-                          <div
-                            key={optIndex}
-                            className={`p-2 rounded ${
-                              option.is_correct
-                                ? 'bg-green-50 border border-green-200'
-                                : 'bg-gray-50'
-                            }`}
-                          >
-                            <span className="font-medium">
-                              {String.fromCharCode(65 + optIndex)}.
-                            </span>{' '}
-                            {option.text}
-                            {option.is_correct && (
-                              <span className="text-green-600 ml-2">✓</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <div className="bg-blue-50 p-3 rounded">
-                        <p className="text-sm text-blue-800">
-                          <strong>Explanation:</strong> {question.explanation}
-                        </p>
-                      </div>
-                    </div>
-                  ))
+                  questions.map((question, index) => {
+                    const questionId = (question as any).question_id || (question as any).id || index;
+                    
+                    return (
+                      <InteractiveQuestion
+                        key={questionId}
+                        question={question}
+                        index={index}
+                      />
+                    );
+                  })
                 )}
               </div>
             )}
@@ -190,8 +283,12 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                             <span>⏱️ {test.duration_minutes} minutes</span>
                           </div>
                         </div>
-                        <button className="btn-primary">
-                          Start Test
+                        <button 
+                          className="btn-primary"
+                          onClick={() => handleStartTest(test)}
+                          disabled={loading}
+                        >
+                          {loading ? 'Loading...' : 'Start Test'}
                         </button>
                       </div>
                     </div>
@@ -310,10 +407,24 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                         {note.title}
                       </h3>
                       
-                      <div className="prose max-w-none mb-4">
-                        <div className="text-gray-700 whitespace-pre-wrap">
+                      <div className="prose prose-blue max-w-none mb-4">
+                        <ReactMarkdown
+                          components={{
+                            h1: ({children}) => <h1 className="text-2xl font-bold text-gray-900 mb-4">{children}</h1>,
+                            h2: ({children}) => <h2 className="text-xl font-semibold text-gray-900 mb-3 mt-6">{children}</h2>,
+                            h3: ({children}) => <h3 className="text-lg font-medium text-gray-900 mb-2 mt-4">{children}</h3>,
+                            p: ({children}) => <p className="text-gray-700 mb-3 leading-relaxed">{children}</p>,
+                            ul: ({children}) => <ul className="list-disc list-inside mb-3 space-y-1">{children}</ul>,
+                            ol: ({children}) => <ol className="list-decimal list-inside mb-3 space-y-1">{children}</ol>,
+                            li: ({children}) => <li className="text-gray-700 ml-4">{children}</li>,
+                            strong: ({children}) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                            em: ({children}) => <em className="italic text-gray-800">{children}</em>,
+                            code: ({children}) => <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-gray-800">{children}</code>,
+                            blockquote: ({children}) => <blockquote className="border-l-4 border-blue-200 pl-4 italic text-gray-600 my-4">{children}</blockquote>,
+                          }}
+                        >
                           {note.content}
-                        </div>
+                        </ReactMarkdown>
                       </div>
 
                       {note.summary_points.length > 0 && (
@@ -337,6 +448,38 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
           </div>
         )}
       </div>
+
+      {/* Mock Test Modals */}
+      {showTestDialog && selectedTest && (
+        <MockTestDialog
+          testName={selectedTest.test_name}
+          totalQuestions={selectedTest.total_questions}
+          duration={selectedTest.duration_minutes}
+          onStart={handleTestDialogStart}
+          onCancel={() => setShowTestDialog(false)}
+        />
+      )}
+
+      {showTestInterface && selectedTest && testQuestions.length > 0 && (
+        <MockTestInterface
+          questions={testQuestions}
+          testName={selectedTest.test_name}
+          duration={selectedTest.duration_minutes}
+          onSubmit={handleTestSubmit}
+          onExit={handleTestExit}
+        />
+      )}
+
+      {showTestResults && selectedTest && testResults.length > 0 && (
+        <MockTestResults
+          testName={selectedTest.test_name}
+          results={testResults}
+          timeSpent={testTimeSpent}
+          totalTime={selectedTest.duration_minutes * 60}
+          onClose={handleResultsClose}
+          onRetakeTest={handleRetakeTest}
+        />
+      )}
     </div>
   );
 }

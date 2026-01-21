@@ -8,6 +8,7 @@ import json
 import logging
 from typing import Dict, List, Optional, Any
 from pathlib import Path
+from datetime import datetime
 
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
@@ -16,89 +17,131 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Global instance
+_gemini_service = None
+
+def get_gemini_service():
+    """Get or create GeminiService instance"""
+    global _gemini_service
+    if _gemini_service is None:
+        _gemini_service = GeminiService()
+    return _gemini_service
+
 class GeminiService:
     """Service for interacting with Google Gemini AI"""
     
     def __init__(self):
         """Initialize Gemini service with API key and configuration"""
-        self.api_key = os.getenv('GEMINI_API_KEY')
-        if not self.api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is required")
-        
-        # Configure Gemini
-        genai.configure(api_key=self.api_key)
-        
-        # Safety settings for medical content
-        self.safety_settings = {
-            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-        }
-        
-        # Initialize models
-        self.model = genai.GenerativeModel(
-            'gemini-2.5-flash',
-            safety_settings=self.safety_settings
-        )
-        
-        # Load system prompts
+        self.api_key = settings.google_ai_api_key
         self.prompts = self._load_prompts()
         
-        logger.info("Gemini service initialized successfully")
+        if self.api_key and self.api_key != "your_api_key_here":
+            genai.configure(api_key=self.api_key)
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            self.is_configured = True
+            logger.info("GeminiService initialized successfully")
+        else:
+            self.model = None
+            self.is_configured = False
+            logger.warning("GeminiService not configured - missing API key")
     
     def _load_prompts(self) -> Dict[str, str]:
         """Load system prompts from files"""
-        prompts = {}
-        prompts_dir = Path("prompts")
-        
-        if not prompts_dir.exists():
-            logger.warning("Prompts directory not found")
-            return prompts
-        
-        for prompt_file in prompts_dir.glob("*.txt"):
-            try:
-                with open(prompt_file, 'r', encoding='utf-8') as f:
-                    prompt_name = prompt_file.stem
-                    prompts[prompt_name] = f.read().strip()
-                    logger.debug(f"Loaded prompt: {prompt_name}")
-            except Exception as e:
-                logger.error(f"Error loading prompt {prompt_file}: {e}")
-        
-        return prompts
+        return {
+            'question_generation': 'Generate medical MCQs from content',
+            'mnemonic_generation': 'Create memorable mnemonics for medical concepts',
+            'cheat_sheet_generation': 'Create concise cheat sheets for medical topics',
+            'notes_generation': 'Generate structured study notes'
+        }
     
+    def _log_ai_request(self, operation: str, prompt: str, additional_info: Dict[str, Any] = None):
+        """Log AI request details"""
+        log_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "service": "GeminiService",
+            "operation": operation,
+            "prompt_length": len(prompt),
+            "prompt_preview": prompt[:500] + "..." if len(prompt) > 500 else prompt,
+        }
+        if additional_info:
+            log_entry.update(additional_info)
+        
+        logger.info(f"=== GEMINI REQUEST: {operation} ===")
+        logger.info(f"Timestamp: {log_entry['timestamp']}")
+        logger.info(f"Prompt Length: {log_entry['prompt_length']} characters")
+        logger.info(f"Prompt Preview:\n{log_entry['prompt_preview']}")
+        if additional_info:
+            logger.info(f"Additional Info: {json.dumps(additional_info, indent=2)}")
+        logger.info(f"=== END GEMINI REQUEST ===")
+        
+        return log_entry
+    
+    def _log_ai_response(self, operation: str, response_text: str, success: bool, additional_info: Dict[str, Any] = None):
+        """Log AI response details"""
+        log_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "service": "GeminiService",
+            "operation": operation,
+            "success": success,
+            "response_length": len(response_text) if response_text else 0,
+            "response_preview": (response_text[:1000] + "..." if len(response_text) > 1000 else response_text) if response_text else "No response",
+        }
+        if additional_info:
+            log_entry.update(additional_info)
+        
+        logger.info(f"=== GEMINI RESPONSE: {operation} ===")
+        logger.info(f"Timestamp: {log_entry['timestamp']}")
+        logger.info(f"Success: {log_entry['success']}")
+        logger.info(f"Response Length: {log_entry['response_length']} characters")
+        logger.info(f"Response Preview:\n{log_entry['response_preview']}")
+        if additional_info:
+            logger.info(f"Additional Info: {json.dumps(additional_info, indent=2)}")
+        logger.info(f"=== END GEMINI RESPONSE ===")
+        
+        return log_entry
+
     async def analyze_content(self, content: str, content_type: str = "text") -> Dict[str, Any]:
         """Analyze uploaded content and extract key information"""
+        operation = "ANALYZE_CONTENT"
+        
+        prompt = f"""Analyze the following {content_type} content and provide:
+1. Main topics covered
+2. Key concepts
+3. Difficulty level
+4. Suggested study approach
+
+Content: {content[:3000]}"""
+
+        self._log_ai_request(operation, prompt, {"content_type": content_type, "content_length": len(content)})
+
         try:
-            prompt = self.prompts.get('content_analysis', '')
-            if not prompt:
-                prompt = "Analyze this content and extract key educational information suitable for medical students."
+            response = self.model.generate_content(prompt)
+            response_text = response.text
             
-            full_prompt = f"{prompt}\n\nContent to analyze:\n{content}"
-            
-            response = self.model.generate_content(full_prompt)
+            self._log_ai_response(operation, response_text, True, {"content_type": content_type})
             
             return {
                 "success": True,
-                "analysis": response.text,
+                "analysis": response_text,
                 "content_type": content_type
             }
-            
         except Exception as e:
+            self._log_ai_response(operation, str(e), False, {"error": str(e)})
             logger.error(f"Content analysis failed: {e}")
             return {
                 "success": False,
                 "error": str(e)
             }
-    
+
     async def generate_questions(self, content: str, num_questions: int = 5, difficulty: str = "mixed") -> List[Dict[str, Any]]:
         """Generate MCQs from content"""
-        try:
-            prompt = self.prompts.get('question_generation', '')
-            if not prompt:
-                prompt = "Generate medical MCQs from the given content."
-            
-            full_prompt = f"""{prompt}
+        operation = "GENERATE_QUESTIONS"
+        
+        prompt = self.prompts.get('question_generation', '')
+        if not prompt:
+            prompt = "Generate medical MCQs from the given content."
+        
+        full_prompt = f"""{prompt}
 
 Content: {content}
 
@@ -113,41 +156,55 @@ Return the response as a JSON array of questions, each with:
 - topic
 - subtopic
 """
-            
+
+        self._log_ai_request(operation, full_prompt, {
+            "num_questions": num_questions,
+            "difficulty": difficulty,
+            "content_length": len(content)
+        })
+
+        try:
             response = self.model.generate_content(full_prompt)
+            response_text = response.text
+            
+            self._log_ai_response(operation, response_text, True, {
+                "num_questions_requested": num_questions,
+                "difficulty": difficulty
+            })
             
             # Try to parse JSON response
             try:
-                questions = json.loads(response.text)
+                questions = json.loads(response_text)
                 if isinstance(questions, list):
                     return questions
                 else:
-                    # If not a list, wrap in array
                     return [questions]
             except json.JSONDecodeError:
-                # If JSON parsing fails, return structured response
+                logger.warning("Could not parse questions as JSON, returning raw response")
                 return [{
-                    "question_text": "Generated question (parsing error)",
-                    "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
+                    "question_text": response_text,
+                    "options": ["Option A", "Option B", "Option C", "Option D"],
                     "correct_answer": 0,
-                    "explanation": response.text,
+                    "explanation": "Raw response from AI",
                     "difficulty": difficulty,
-                    "topic": "General",
-                    "subtopic": "Content Analysis"
+                    "topic": "Generated",
+                    "subtopic": "Auto-generated"
                 }]
-            
+                
         except Exception as e:
+            self._log_ai_response(operation, str(e), False, {"error": str(e)})
             logger.error(f"Question generation failed: {e}")
             return []
-    
+
     async def generate_mnemonics(self, concept: str, context: str = "") -> Dict[str, Any]:
         """Generate memory aids and mnemonics"""
-        try:
-            prompt = self.prompts.get('mnemonic_generation', '')
-            if not prompt:
-                prompt = "Create memorable mnemonics for medical concepts with Indian cultural context."
-            
-            full_prompt = f"""{prompt}
+        operation = "GENERATE_MNEMONICS"
+        
+        prompt = self.prompts.get('mnemonic_generation', '')
+        if not prompt:
+            prompt = "Create memorable mnemonics for medical concepts with Indian cultural context."
+        
+        full_prompt = f"""{prompt}
 
 Concept: {concept}
 Context: {context}
@@ -155,11 +212,20 @@ Context: {context}
 Generate a mnemonic that helps Indian medical students remember this concept.
 Return as JSON with: concept, mnemonic_type, mnemonic_text, explanation, cultural_context, difficulty, subject
 """
-            
+
+        self._log_ai_request(operation, full_prompt, {
+            "concept": concept,
+            "context": context
+        })
+
+        try:
             response = self.model.generate_content(full_prompt)
+            response_text = response.text
+            
+            self._log_ai_response(operation, response_text, True, {"concept": concept})
             
             try:
-                mnemonic = json.loads(response.text)
+                mnemonic = json.loads(response_text)
                 return {
                     "success": True,
                     "mnemonic": mnemonic
@@ -170,7 +236,7 @@ Return as JSON with: concept, mnemonic_type, mnemonic_text, explanation, cultura
                     "mnemonic": {
                         "concept": concept,
                         "mnemonic_type": "text",
-                        "mnemonic_text": response.text,
+                        "mnemonic_text": response_text,
                         "explanation": "Generated mnemonic",
                         "cultural_context": "Indian medical education",
                         "difficulty": "medium",
@@ -179,16 +245,18 @@ Return as JSON with: concept, mnemonic_type, mnemonic_text, explanation, cultura
                 }
             
         except Exception as e:
+            self._log_ai_response(operation, str(e), False, {"error": str(e)})
             logger.error(f"Mnemonic generation failed: {e}")
             return {
                 "success": False,
                 "error": str(e)
             }
-    
+
     async def create_cheat_sheet(self, content: str, topic: str) -> Dict[str, Any]:
         """Create concise cheat sheets from content"""
-        try:
-            prompt = f"""Create a comprehensive cheat sheet for medical students on the topic: {topic}
+        operation = "CREATE_CHEAT_SHEET"
+        
+        full_prompt = f"""Create a comprehensive cheat sheet for medical students on the topic: {topic}
 
 Content: {content}
 
@@ -200,26 +268,37 @@ Format the cheat sheet with:
 5. High-Yield Facts
 
 Make it concise but comprehensive for exam preparation."""
+
+        self._log_ai_request(operation, full_prompt, {
+            "topic": topic,
+            "content_length": len(content)
+        })
+
+        try:
+            response = self.model.generate_content(full_prompt)
+            response_text = response.text
             
-            response = self.model.generate_content(prompt)
+            self._log_ai_response(operation, response_text, True, {"topic": topic})
             
             return {
                 "success": True,
-                "cheat_sheet": response.text,
+                "cheat_sheet": response_text,
                 "topic": topic
             }
             
         except Exception as e:
+            self._log_ai_response(operation, str(e), False, {"error": str(e)})
             logger.error(f"Cheat sheet creation failed: {e}")
             return {
                 "success": False,
                 "error": str(e)
             }
-    
+
     async def generate_notes(self, content: str, style: str = "structured") -> Dict[str, Any]:
         """Generate structured notes from content"""
-        try:
-            prompt = f"""Convert the following content into well-structured study notes for medical students.
+        operation = "GENERATE_NOTES"
+        
+        full_prompt = f"""Convert the following content into well-structured study notes for medical students.
 
 Style: {style}
 Content: {content}
@@ -231,28 +310,47 @@ Create notes with:
 - Easy to review format
 - Suitable for medical exam preparation
 """
+
+        self._log_ai_request(operation, full_prompt, {
+            "style": style,
+            "content_length": len(content)
+        })
+
+        try:
+            response = self.model.generate_content(full_prompt)
+            response_text = response.text
             
-            response = self.model.generate_content(prompt)
+            self._log_ai_response(operation, response_text, True, {"style": style})
             
             return {
                 "success": True,
-                "notes": response.text,
+                "notes": response_text,
                 "style": style
             }
             
         except Exception as e:
+            self._log_ai_response(operation, str(e), False, {"error": str(e)})
             logger.error(f"Notes generation failed: {e}")
             return {
                 "success": False,
                 "error": str(e)
             }
-    
+
     async def create_mock_test(self, content: str, num_questions: int = 10, time_limit: int = 30) -> Dict[str, Any]:
         """Create a complete mock test"""
+        operation = "CREATE_MOCK_TEST"
+        
+        self._log_ai_request(operation, f"Creating mock test with {num_questions} questions", {
+            "num_questions": num_questions,
+            "time_limit": time_limit,
+            "content_length": len(content)
+        })
+        
         try:
             questions = await self.generate_questions(content, num_questions, "mixed")
             
             if not questions:
+                self._log_ai_response(operation, "Failed to generate questions", False)
                 return {
                     "success": False,
                     "error": "Failed to generate questions for mock test"
@@ -271,40 +369,54 @@ Create notes with:
                 ]
             }
             
+            self._log_ai_response(operation, "Mock test created successfully", True, {
+                "test_name": mock_test["test_name"],
+                "total_questions": len(questions),
+                "time_limit": time_limit
+            })
+            
             return {
                 "success": True,
                 "mock_test": mock_test
             }
             
         except Exception as e:
+            self._log_ai_response(operation, str(e), False, {"error": str(e)})
             logger.error(f"Mock test creation failed: {e}")
             return {
                 "success": False,
                 "error": str(e)
             }
-    
+
     async def test_connection(self) -> Dict[str, Any]:
         """Test Gemini API connection"""
+        operation = "TEST_CONNECTION"
+        
+        if not self.is_configured:
+            self._log_ai_response(operation, "Service not configured", False)
+            return {
+                "success": False,
+                "error": "Gemini service not configured - missing API key"
+            }
+        
+        test_prompt = "Say 'Hello, StudyBuddy!' to confirm the connection is working."
+        
+        self._log_ai_request(operation, test_prompt)
+        
         try:
-            response = self.model.generate_content("Hello! Please respond with 'Gemini connection successful!'")
+            response = self.model.generate_content(test_prompt)
+            response_text = response.text
+            
+            self._log_ai_response(operation, response_text, True)
+            
             return {
                 "success": True,
-                "message": response.text,
-                "model": "gemini-2.5-flash"
+                "message": "Gemini API connection successful",
+                "response": response_text
             }
         except Exception as e:
-            logger.error(f"Gemini connection test failed: {e}")
+            self._log_ai_response(operation, str(e), False, {"error": str(e)})
             return {
                 "success": False,
                 "error": str(e)
             }
-
-# Global instance
-gemini_service = None
-
-def get_gemini_service() -> GeminiService:
-    """Get or create Gemini service instance"""
-    global gemini_service
-    if gemini_service is None:
-        gemini_service = GeminiService()
-    return gemini_service

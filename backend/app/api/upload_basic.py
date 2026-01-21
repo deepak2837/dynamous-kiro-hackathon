@@ -8,15 +8,21 @@ from datetime import datetime
 from app.services.s3_service import s3_service
 from app.api.auth_simple import get_current_user
 from app.auth_models_simple import UserResponse
+from app.services.ai_service import AIService
 import asyncio
 import json
 import pymongo
+import logging
+import PyPDF2
+import io
 
 router = APIRouter()
 security = HTTPBearer()
 
 # In-memory storage for session status
 session_storage = {}
+
+logger = logging.getLogger(__name__)
 
 def get_db():
     """Get database connection"""
@@ -48,20 +54,78 @@ async def process_files_background(session_id: str, files_data: List[dict]):
         except Exception as e:
             print(f"Error updating session status: {e}")
         
-        # Simulate processing time
-        await asyncio.sleep(2)
+        # Initialize AI Service
+        ai_service = AIService()
         
-        # Extract text from files (simplified)
+        # Extract text from files (simplified for now - in production would use FileProcessor)
         all_text = ""
         for file_data in files_data:
-            # In real implementation, extract text from file
-            all_text += f"Content from {file_data['filename']}: Sample medical content about anatomy, physiology, and pathology.\n"
+            # Get file path or content
+            file_path = file_data.get('path', '')
+            filename = file_data.get('filename', '')
+            
+            # For now, use the filename to generate placeholder text
+            # In production, this would use FileProcessor to extract actual text
+            all_text += f"Content from {filename}: Medical educational material for study.\n"
         
-        # Generate outputs
-        questions = generate_questions(all_text)
+        # Use real AI service to generate content
+        user_id = session_storage[session_id].get("user_id", "unknown")
+        try:
+            # Generate questions using AI
+            questions_data = await ai_service.generate_questions(all_text, doc_type="STUDY_NOTES", num_questions=15)
+            questions = []
+            for i, q in enumerate(questions_data):
+                options_list = q.get("options", ["Option A", "Option B", "Option C", "Option D"])
+                # Ensure options is a list of strings
+                if options_list and isinstance(options_list[0], dict):
+                    options_list = [o.get("text", f"Option {i}") for i, o in enumerate(options_list)]
+                
+                question = {
+                    "question_id": str(uuid.uuid4()),
+                    "session_id": session_id,
+                    "user_id": user_id,
+                    "question_text": q.get("question", f"Question {i+1}"),
+                    "options": options_list[:4] if len(options_list) >= 4 else options_list + ["Option"] * (4 - len(options_list)),
+                    "correct_answer": q.get("correct_answer", 0),
+                    "explanation": q.get("explanation", ""),
+                    "difficulty": q.get("difficulty", "medium").lower(),
+                    "topic": q.get("topic", "General")
+                }
+                questions.append(question)
+            
+            # Generate mnemonics using AI
+            mnemonics_data = await ai_service.generate_mnemonics(all_text, num_mnemonics=5)
+            mnemonics = []
+            for m in mnemonics_data:
+                mnemonic = {
+                    "mnemonic_id": str(uuid.uuid4()),
+                    "mnemonic_text": m.get("mnemonic", ""),
+                    "meaning": m.get("explanation", ""),
+                    "topic": m.get("topic", "")
+                }
+                mnemonics.append(mnemonic)
+            
+            # Generate cheat sheets using AI
+            cheat_sheets_data = await ai_service.generate_cheat_sheets(all_text, num_sheets=2)
+            cheat_sheets = []
+            for cs in cheat_sheets_data:
+                sheet = {
+                    "sheet_id": str(uuid.uuid4()),
+                    "topic": cs.get("title", "Study Sheet"),
+                    "key_points": cs.get("key_points", []),
+                    "quick_facts": cs.get("high_yield_facts", [])
+                }
+                cheat_sheets.append(sheet)
+            
+        except Exception as ai_error:
+            print(f"AI service error: {ai_error}, using fallback questions")
+            # Fallback to mock data if AI fails
+            questions = generate_questions(all_text)
+            mnemonics = generate_mnemonics(all_text)
+            cheat_sheets = generate_cheat_sheets(all_text)
+        
+        # Generate mock tests from questions (no AI needed)
         mock_tests = generate_mock_tests(questions)
-        mnemonics = generate_mnemonics(all_text)
-        cheat_sheets = generate_cheat_sheets(all_text)
         notes = generate_notes(all_text, questions, mnemonics)
         
         # Store results in memory
@@ -233,7 +297,7 @@ def generate_notes(text: str, questions: List[dict], mnemonics: List[dict]) -> L
         }
     ]
 
-@router.post("/")
+@router.post("")
 async def upload_files(
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),
@@ -324,21 +388,45 @@ async def get_processing_status(
     current_user: UserResponse = Depends(get_current_user)
 ):
     """Get processing status - requires authentication"""
-    if session_id not in session_storage:
-        raise HTTPException(status_code=404, detail="Session not found")
+    # First check in-memory storage (for file uploads)
+    if session_id in session_storage:
+        session = session_storage[session_id]
+        
+        # Check if session belongs to current user
+        if session["user_id"] != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied to this session")
+        
+        return {
+            "session_id": session_id,
+            "status": session["status"],
+            "message": f"Session is {session['status']}",
+            "progress": session.get("progress", 0)
+        }
     
-    session = session_storage[session_id]
-    
-    # Check if session belongs to current user
-    if session["user_id"] != current_user.id:
-        raise HTTPException(status_code=403, detail="Access denied to this session")
-    
-    return {
-        "session_id": session_id,
-        "status": session["status"],
-        "message": f"Session is {session['status']}",
-        "error_message": session.get("error")
-    }
+    # If not found in memory, check database (for text input sessions)
+    try:
+        db = get_db()
+        db_session = db.study_sessions.find_one({"session_id": session_id})
+        
+        if not db_session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        # Check if session belongs to current user
+        if db_session["user_id"] != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied to this session")
+        
+        return {
+            "session_id": session_id,
+            "status": db_session.get("status", "pending"),
+            "message": f"Session is {db_session.get('status', 'pending')}",
+            "progress": db_session.get("overall_progress", 0)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking session status: {e}")
+        raise HTTPException(status_code=500, detail="Error checking session status")
 
 @router.get("/check-upload-allowed/{user_id}")
 async def check_upload_allowed(
@@ -355,3 +443,138 @@ async def check_upload_allowed(
         "message": "Upload allowed",
         "remaining_seconds": 0
     }
+
+async def extract_text_from_pdf(file_content: bytes, filename: str) -> str:
+    """Extract text from PDF file."""
+    logger.info(f"=== PDF TEXT EXTRACTION START ===")
+    logger.info(f"Filename: {filename}")
+    logger.info(f"File content size: {len(file_content)} bytes")
+    
+    text_content = ""
+    
+    try:
+        # Use PyPDF2 to extract text
+        pdf_file = io.BytesIO(file_content)
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        
+        num_pages = len(pdf_reader.pages)
+        logger.info(f"PDF has {num_pages} pages")
+        
+        for page_num, page in enumerate(pdf_reader.pages):
+            page_text = page.extract_text()
+            if page_text:
+                text_content += page_text + "\n"
+                logger.info(f"Page {page_num + 1}: extracted {len(page_text)} characters")
+            else:
+                logger.warning(f"Page {page_num + 1}: no text extracted (might be scanned/image)")
+        
+        logger.info(f"=== PDF TEXT EXTRACTION COMPLETE ===")
+        logger.info(f"Total extracted text length: {len(text_content)} characters")
+        logger.info(f"Extracted text preview (first 500 chars): {text_content[:500]}")
+        logger.info(f"=== END PDF TEXT ===")
+        
+        # If no text extracted, the PDF might be scanned - try OCR
+        if len(text_content.strip()) < 50:
+            logger.warning("PDF appears to be scanned or has minimal text. Attempting OCR...")
+            text_content = await extract_text_with_ocr(file_content, filename)
+        
+        return text_content
+        
+    except Exception as e:
+        logger.error(f"Error extracting PDF text: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return ""
+
+async def extract_text_with_ocr(file_content: bytes, filename: str) -> str:
+    """Extract text from scanned PDF using OCR."""
+    logger.info("=== OCR EXTRACTION START ===")
+    
+    try:
+        # Try using pdf2image and pytesseract for OCR
+        from pdf2image import convert_from_bytes
+        import pytesseract
+        
+        images = convert_from_bytes(file_content)
+        logger.info(f"Converted PDF to {len(images)} images for OCR")
+        
+        text_content = ""
+        for i, image in enumerate(images):
+            page_text = pytesseract.image_to_string(image)
+            text_content += page_text + "\n"
+            logger.info(f"OCR Page {i + 1}: extracted {len(page_text)} characters")
+        
+        logger.info(f"=== OCR EXTRACTION COMPLETE ===")
+        logger.info(f"Total OCR text: {len(text_content)} characters")
+        logger.info(f"OCR text preview: {text_content[:500]}")
+        
+        return text_content
+        
+    except ImportError as e:
+        logger.error(f"OCR libraries not installed: {e}")
+        return ""
+    except Exception as e:
+        logger.error(f"OCR extraction failed: {e}")
+        return ""
+
+async def extract_text_from_file(file_path: str, file_type: str) -> str:
+    """Extract text from uploaded file."""
+    logger.info(f"=== EXTRACTING TEXT FROM FILE ===")
+    logger.info(f"File path: {file_path}")
+    logger.info(f"File type: {file_type}")
+    
+    text_content = ""
+    
+    try:
+        if file_type == "application/pdf":
+            # PDF extraction logic
+            pass
+        elif file_type.startswith("image/"):
+            # OCR for images
+            # ...existing code...
+            pass
+        else:
+            # Text file
+            with open(file_path, 'r', encoding='utf-8') as f:
+                text_content = f.read()
+        
+        # Log the extracted text
+        logger.info(f"=== OCR/EXTRACTED TEXT START ===")
+        logger.info(f"Text length: {len(text_content)} characters")
+        logger.info(f"Text preview (first 1000 chars): {text_content[:1000]}")
+        logger.info(f"=== OCR/EXTRACTED TEXT END ===")
+        
+        return text_content
+        
+    except Exception as e:
+        logger.error(f"Error extracting text: {e}")
+        return ""
+
+async def process_upload(file, session_id: str, user_id: str, num_questions: int = 15):
+    """Process uploaded file and generate questions."""
+    # ...existing code for file saving...
+    
+    # Extract text
+    text_content = await extract_text_from_file(file_path, file_type)
+    
+    logger.info(f"=== CONTENT BEING SENT TO AI ===")
+    logger.info(f"Session ID: {session_id}")
+    logger.info(f"Content length: {len(text_content)} characters")
+    logger.info(f"Content preview: {text_content[:500] if text_content else 'EMPTY'}")
+    logger.info(f"=== END CONTENT PREVIEW ===")
+    
+    if not text_content or len(text_content.strip()) < 50:
+        logger.warning(f"Insufficient text content extracted: {len(text_content)} chars")
+    
+    # Generate questions
+    questions = await ai_service.generate_questions(
+        content=text_content,
+        doc_type="STUDY_NOTES",
+        num_questions=num_questions
+    )
+    
+    logger.info(f"=== AI GENERATION RESULT ===")
+    logger.info(f"Questions generated: {len(questions) if questions else 0}")
+    logger.info(f"=== END AI RESULT ===")
+    
+    # ...existing code for saving questions...

@@ -500,7 +500,7 @@ async def get_current_user(token: str = Depends(security)):
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_APP_NAME=StudyBuddy
-NEXTAUTH_SECRET=<existing_secret>
+NEXTAUTH_SECRET=your-nextauth-secret-here
 ```
 
 ### Backend (.env)
@@ -510,11 +510,11 @@ MONGODB_URL=mongodb://localhost:27017/medgloss
 DATABASE_NAME=medgloss
 
 # AI Service
-GOOGLE_AI_API_KEY=<key>
+GOOGLE_AI_API_KEY=your-api-key-here
 GENAI_PROJECT_ID=<project_id>
 
 # Authentication
-JWT_SECRET=<secret>
+JWT_SECRET=your-secret-key-here
 JWT_ALGORITHM=HS256
 JWT_EXPIRY=86400
 

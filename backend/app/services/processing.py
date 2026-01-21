@@ -79,10 +79,18 @@ class ProcessingService:
                         local_file_path = file_path
                     
                     # Extract text with batching
+                    logger.info(f"🔍 Extracting text from file {i+1}/{len(files)}: {os.path.basename(local_file_path)}")
+                    
                     if mode == ProcessingMode.OCR_AI:
+                        logger.info(f"🔍 Using OCR+AI mode for text extraction")
                         batches = await self.file_processor.extract_text_ocr_batched(local_file_path, session_id)
                     else:  # AI_ONLY
+                        logger.info(f"🔍 Using AI-only mode for text extraction")
                         batches = await self.file_processor.extract_text_ai_batched(local_file_path, session_id)
+                    
+                    logger.info(f"📊 Extracted {len(batches)} batches from {os.path.basename(local_file_path)}")
+                    for j, batch in enumerate(batches):
+                        logger.info(f"   Batch {j+1}: {len(batch.text_content)} characters")
                     
                     all_batches.extend(batches)
                     
@@ -112,7 +120,12 @@ class ProcessingService:
             if not all_batches:
                 raise Exception("No text could be extracted from the uploaded files")
             
-            logger.info(f"Created {len(all_batches)} batches for processing")
+            logger.info(f"📊 TEXT EXTRACTION COMPLETE - Created {len(all_batches)} batches for processing")
+            total_chars = sum(len(batch.text_content) for batch in all_batches)
+            logger.info(f"📝 Total text extracted: {total_chars} characters")
+            
+            # Now start AI processing AFTER text extraction is complete
+            logger.info(f"🤖 STARTING AI PROCESSING - Processing {len(all_batches)} batches with AI")
             
             # Process each batch and generate content
             await ProgressTracker.update_progress(
@@ -269,6 +282,176 @@ class ProcessingService:
                 error_info["user_message"]
             )
     
+    async def process_text_input(self, session_id: str, topic: str, user_id: str):
+        """Process text-only topic input to generate study materials without files"""
+        try:
+            logger.info(f"Starting text-input processing for topic: {topic}")
+            
+            # Initialize progress tracking
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.AI_PROCESSING, 
+                0, 
+                f"Generating content for topic: {topic[:50]}..."
+            )
+            
+            # Get session data
+            db = get_database()
+            session_data = await db.study_sessions.find_one({"session_id": session_id})
+            if not session_data:
+                raise Exception("Session not found")
+            
+            session_name = session_data.get("session_name", f"Topic: {topic}")
+            
+            # Generate content about the topic using AI
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.AI_PROCESSING, 
+                10, 
+                "Analyzing topic and preparing content generation..."
+            )
+            
+            # Generate all content from topic
+            logger.info(f"Calling AI service to generate content for topic: {topic}")
+            content = await self.ai_service.generate_content_from_topic(topic)
+            logger.info(f"AI service returned content with keys: {list(content.keys())}")
+            
+            # Store questions
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_QUESTIONS, 
+                25, 
+                "Processing and storing questions..."
+            )
+            
+            # Store questions
+            questions_data = content.get("questions", [])
+            stored_questions = []
+            for q_data in questions_data:
+                question = Question(
+                    question_id=str(uuid.uuid4()),
+                    session_id=session_id,
+                    user_id=user_id,
+                    question_text=q_data.get("question", ""),
+                    options=q_data.get("options", []),
+                    correct_answer=q_data.get("correct_answer", 0),
+                    explanation=q_data.get("explanation", ""),
+                    difficulty=DifficultyLevel(q_data.get("difficulty", "medium")),
+                    topic=topic
+                )
+                await db.questions.insert_one(question.dict())
+                stored_questions.append(question)
+            
+            logger.info(f"Stored {len(stored_questions)} questions for topic: {topic}")
+            
+            # Create mock test from questions (NO AI CALL)
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_MOCK_TESTS, 
+                45, 
+                "Creating mock test from generated questions..."
+            )
+            
+            if len(stored_questions) >= 5:
+                mock_test = await self.mock_test_generator.create_mock_test_from_questions(
+                    session_id, user_id, stored_questions, session_name
+                )
+                if mock_test:
+                    await db.mock_tests.insert_one(mock_test.dict())
+                    logger.info(f"Created mock test with {mock_test.total_questions} questions")
+            
+            # Store mnemonics
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_MNEMONICS, 
+                65, 
+                "Processing and storing mnemonics..."
+            )
+            
+            mnemonics_data = content.get("mnemonics", [])
+            for m_data in mnemonics_data:
+                mnemonic = Mnemonic(
+                    mnemonic_id=str(uuid.uuid4()),
+                    session_id=session_id,
+                    user_id=user_id,
+                    topic=m_data.get("topic", topic),
+                    mnemonic_text=m_data.get("mnemonic", ""),
+                    explanation=m_data.get("explanation", ""),
+                    key_terms=m_data.get("key_terms", [])
+                )
+                await db.mnemonics.insert_one(mnemonic.dict())
+            
+            logger.info(f"Stored {len(mnemonics_data)} mnemonics for topic: {topic}")
+            
+            # Store cheat sheet
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_CHEAT_SHEETS, 
+                80, 
+                "Processing and storing cheat sheet..."
+            )
+            
+            cheat_sheet_data = content.get("cheat_sheet", {})
+            if cheat_sheet_data:
+                cheat_sheet = CheatSheet(
+                    sheet_id=str(uuid.uuid4()),
+                    session_id=session_id,
+                    user_id=user_id,
+                    title=cheat_sheet_data.get("title", f"Cheat Sheet: {topic}"),
+                    key_points=cheat_sheet_data.get("key_points", []),
+                    high_yield_facts=cheat_sheet_data.get("high_yield_facts", []),
+                    quick_references=cheat_sheet_data.get("quick_references", {})
+                )
+                await db.cheat_sheets.insert_one(cheat_sheet.dict())
+                logger.info(f"Stored cheat sheet for topic: {topic}")
+            
+            # Store notes
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_NOTES, 
+                90, 
+                "Compiling notes..."
+            )
+            
+            notes_data = content.get("notes", {})
+            note = Note(
+                note_id=str(uuid.uuid4()),
+                session_id=session_id,
+                user_id=user_id,
+                title=notes_data.get("title", f"Study Notes: {topic}"),
+                content=notes_data.get("content", f"Comprehensive notes on {topic}"),
+                important_questions=[q.question_id for q in stored_questions[:5]],
+                summary_points=notes_data.get("summary_points", []),
+                related_mnemonics=[]
+            )
+            await db.notes.insert_one(note.dict())
+            logger.info(f"Stored notes for topic: {topic}")
+            
+            # Mark as completed
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.COMPLETED, 
+                100, 
+                "All study materials ready!"
+            )
+            
+            logger.info(f"Text-input processing completed for session {session_id}")
+            
+        except Exception as e:
+            logger.error(f"Text-input processing failed for session {session_id}: {str(e)}")
+            
+            error_info = await ErrorHandler.handle_processing_error(
+                e, 
+                {"session_id": session_id, "step": "text_input_processing"}
+            )
+            
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.FAILED, 
+                0, 
+                error_info["user_message"]
+            )
+    
     async def _count_total_pages(self, files: List[str], s3_keys: List[str] = None) -> int:
         """Count total pages in all uploaded files"""
         total_pages = 0
@@ -302,9 +485,11 @@ class ProcessingService:
             return len(files)  # Fallback to file count
     
     async def _extract_text_from_files(self, files: List[str], mode: ProcessingMode, s3_keys: List[str] = None, session_id: str = None) -> str:
-        """Extract text from uploaded files based on processing mode"""
+        """Extract text from uploaded files based on processing mode with enhanced logging"""
         all_text = []
         s3_keys = s3_keys or []
+        
+        logger.info(f"🚀 Starting text extraction for {len(files)} files in {mode.value} mode")
         
         for i, file_path in enumerate(files):
             try:
@@ -317,29 +502,41 @@ class ProcessingService:
                     temp_filename = os.path.basename(file_path)
                     temp_path = os.path.join("/tmp", f"processing_{temp_filename}")
                     
+                    logger.info(f"📥 Downloading file from S3: {s3_key}")
                     # Download from S3
                     local_file_path = await s3_service.download_file_for_processing(s3_key, temp_path)
                 else:
                     local_file_path = file_path
                 
+                logger.info(f"📄 Processing file {i+1}/{len(files)}: {os.path.basename(local_file_path)}")
+                
                 # Extract text based on mode
                 if mode == ProcessingMode.OCR_AI:
-                    text = await self.file_processor.extract_text_ocr(local_file_path)
+                    logger.info(f"🔍 Using OCR+AI mode for file: {os.path.basename(local_file_path)}")
+                    text = await self.file_processor.extract_text_ocr(local_file_path, session_id)
                 else:  # AI_ONLY
+                    logger.info(f"🤖 Using AI-only mode for file: {os.path.basename(local_file_path)}")
                     text = await self.file_processor.extract_text_ai(local_file_path)
                 
                 if text:
                     all_text.append(text)
+                    logger.info(f"✅ Successfully extracted {len(text)} characters from {os.path.basename(local_file_path)}")
+                else:
+                    logger.warning(f"⚠️ No text extracted from {os.path.basename(local_file_path)}")
                 
                 # Clean up temporary file if it was downloaded from S3
                 if s3_key and s3_service.is_s3_enabled() and os.path.exists(local_file_path):
                     os.remove(local_file_path)
+                    logger.debug(f"🗑️ Cleaned up temporary file: {local_file_path}")
                     
             except Exception as e:
-                logger.warning(f"Failed to process file {file_path}: {str(e)}")
+                logger.error(f"❌ Failed to process file {file_path}: {str(e)}")
                 continue
         
-        return "\n\n".join(all_text)
+        combined_text = "\n\n".join(all_text)
+        logger.info(f"📊 Text extraction complete: {len(combined_text)} total characters from {len(all_text)}/{len(files)} files")
+        
+        return combined_text
     
     async def _generate_questions(self, session_id: str, user_id: str, text: str):
         """Generate questions from extracted text"""

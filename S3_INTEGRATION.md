@@ -11,7 +11,7 @@ Add the following variables to your `.env` file:
 ```env
 # AWS S3 Configuration
 AWS_ACCESS_KEY_ID=your-access-key-id
-AWS_SECRET_ACCESS_KEY=your-secret-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-access-key-here
 AWS_REGION=ap-south-1
 STUDY_BUDDY_BUCKET_NAME=study-buddy-crud-bucket
 

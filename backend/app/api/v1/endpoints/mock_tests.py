@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from app.models import MockTestListResponse, MockTest
 from app.database import get_database
+from app.utils.db_helpers import clean_mongo_document
 
 router = APIRouter()
 
@@ -20,8 +21,9 @@ async def get_session_mock_tests(
     # Get total count
     total_count = await db.mock_tests.count_documents({"session_id": session_id})
     
-    # Convert to Pydantic models
-    test_models = [MockTest(**test) for test in mock_tests]
+    # Clean MongoDB documents and convert to Pydantic models
+    cleaned_tests = clean_mongo_document(mock_tests)
+    test_models = [MockTest(**test) for test in cleaned_tests]
     
     return MockTestListResponse(
         mock_tests=test_models,
@@ -40,13 +42,18 @@ async def get_mock_test(
         raise HTTPException(status_code=404, detail="Mock test not found")
     
     # Get associated questions
-    questions = await db.questions.find(
+    questions_cursor = db.questions.find(
         {"question_id": {"$in": test["questions"]}}
-    ).to_list(length=None)
+    )
+    questions = await questions_cursor.to_list(length=None)
     
-    test_model = MockTest(**test)
+    # Clean MongoDB documents
+    cleaned_test = clean_mongo_document(test)
+    cleaned_questions = clean_mongo_document(questions)
+    
+    test_model = MockTest(**cleaned_test)
     
     return {
         "test": test_model,
-        "questions": questions
+        "questions": cleaned_questions
     }

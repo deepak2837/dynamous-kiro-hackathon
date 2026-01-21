@@ -101,7 +101,7 @@ class EnhancedServerAgent:
             # Start server with proper logging
             cmd = [
                 "bash", "-c", 
-                "cd backend && source venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --log-level info"
+                "cd backend && source venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level info"
             ]
             
             with open(self.backend_log, "w") as log_file:
@@ -168,12 +168,16 @@ class EnhancedServerAgent:
             return False
     
     def check_backend_health(self):
-        """Check if backend server is healthy"""
-        try:
-            response = requests.get("http://localhost:8000/health", timeout=3)
-            return response.status_code == 200
-        except:
-            return False
+        """Check if backend server is healthy with retry"""
+        for attempt in range(3):  # Try 3 times
+            try:
+                response = requests.get("http://localhost:8000/health", timeout=5)
+                if response.status_code == 200:
+                    return True
+            except:
+                if attempt < 2:  # Don't sleep on last attempt
+                    time.sleep(1)
+        return False
     
     def check_frontend_health(self):
         """Check if frontend server is healthy"""
@@ -485,7 +489,7 @@ class EnhancedServerAgent:
         self.log("Starting health monitoring...")
         
         while self.running:
-            time.sleep(15)  # Check every 15 seconds
+            time.sleep(30)  # Check every 30 seconds (less aggressive)
             
             # Check backend health
             backend_ok = self.check_backend_health()

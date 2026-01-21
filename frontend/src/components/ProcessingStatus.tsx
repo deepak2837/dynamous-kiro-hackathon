@@ -121,14 +121,6 @@ function ProcessingStatus({ sessionId, onComplete }: ProcessingStatusProps) {
                 {progress.step_progress}%
               </span>
             </div>
-            
-            {/* Step Progress Bar */}
-            <div className="w-full bg-gray-100 rounded-full h-2">
-              <div 
-                className="bg-blue-400 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progress.step_progress}%` }}
-              ></div>
-            </div>
           </div>
         )}
 
