@@ -98,29 +98,9 @@ app.include_router(questions_router, prefix="/api/v1/questions")
 from app.api.questions_basic import router as questions_basic_router
 app.include_router(questions_basic_router, prefix="/api/v1")
 
-# Comment out mock routes - using real AI processing instead
-# from app.api.mock_questions import router as mock_questions_router
-# app.include_router(mock_questions_router, prefix="/api/v1/questions")
-
-# from app.api.mock_tests import router as mock_tests_router
-# app.include_router(mock_tests_router, prefix="/api/v1/mock-tests")
-
-# from app.api.mock_content import router as mock_content_router
-# app.include_router(mock_content_router, prefix="/api/v1/mnemonics")
-# app.include_router(mock_content_router, prefix="/api/v1/cheat-sheets")
-# app.include_router(mock_content_router, prefix="/api/v1/notes")
-
 # Add S3 test routes
 from app.api.s3_test import router as s3_test_router
 app.include_router(s3_test_router, prefix="/api/v1/s3-test")
-
-# Add simple upload routes - commented out due to missing dependencies
-# from app.api.upload_simple import router as upload_simple_router
-# app.include_router(upload_simple_router, prefix="/api/v1/upload")
-
-# Add history routes - commented out due to missing dependencies  
-# from app.api.history import router as history_router
-# app.include_router(history_router)
 
 @app.get("/")
 async def root():
