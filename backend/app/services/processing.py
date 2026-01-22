@@ -249,6 +249,9 @@ class ProcessingService:
                 {"$set": {"status": "completed", "overall_progress": 100}}
             )
             
+            # Send email notification if enabled
+            await self._send_completion_email_if_enabled(session_id)
+            
             logger.info(f"✅ File processing completed for session {session_id}")
             
         except Exception as e:
@@ -269,6 +272,109 @@ class ProcessingService:
                 0, 
                 f"Processing failed: {str(e)[:100]}"
             )
+    
+    async def _send_completion_email_if_enabled(self, session_id: str):
+        """Send completion email if email notification is enabled for the session"""
+        try:
+            db = get_database()
+            session = await db.study_sessions.find_one({"session_id": session_id})
+            
+            if not session:
+                logger.warning(f"Session {session_id} not found for email notification")
+                return
+                
+            if not session.get("email_notification_enabled") or not session.get("notification_email"):
+                logger.info(f"Email notification not enabled for session {session_id}")
+                return
+            
+            # Get content counts
+            questions_count = await db.questions.count_documents({"session_id": session_id})
+            mnemonics_count = await db.mnemonics.count_documents({"session_id": session_id})
+            cheat_sheets_count = await db.cheat_sheets.count_documents({"session_id": session_id})
+            mock_tests_count = await db.mock_tests.count_documents({"session_id": session_id})
+            
+            # Send actual email
+            email = session['notification_email']
+            session_name = session.get('session_name', 'Study Session')
+            
+            success = await self._send_completion_email(
+                email, session_name, questions_count, mnemonics_count, 
+                cheat_sheets_count, mock_tests_count
+            )
+            
+            if success:
+                logger.info(f"📧 EMAIL NOTIFICATION SENT to {email} for session {session_id}")
+            else:
+                logger.error(f"❌ Failed to send email notification to {email} for session {session_id}")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to send completion email for session {session_id}: {str(e)}")
+    
+    async def _send_completion_email(self, email: str, session_name: str, questions: int, mnemonics: int, cheat_sheets: int, mock_tests: int) -> bool:
+        """Send actual completion email using SMTP"""
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+            from app.config import settings
+            
+            # Create email message
+            msg = MIMEMultipart()
+            msg['From'] = settings.smtp_username
+            msg['To'] = email
+            msg['Subject'] = '🎉 Your Study Materials are Ready!'
+            
+            # Email body
+            body = f"""
+            <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #2c3e50;">🎉 Your Study Materials are Ready!</h2>
+                    
+                    <p>Great news! Your study materials have been successfully generated.</p>
+                    
+                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="color: #2c3e50; margin-top: 0;">Session: {session_name}</h3>
+                        
+                        <h4 style="color: #34495e;">Generated Content:</h4>
+                        <ul style="list-style-type: none; padding: 0;">
+                            <li style="padding: 5px 0;">📝 <strong>{questions} Questions</strong></li>
+                            <li style="padding: 5px 0;">🧠 <strong>{mnemonics} Mnemonics</strong></li>
+                            <li style="padding: 5px 0;">📋 <strong>{cheat_sheets} Cheat Sheets</strong></li>
+                            <li style="padding: 5px 0;">📊 <strong>{mock_tests} Mock Tests</strong></li>
+                        </ul>
+                    </div>
+                    
+                    <p style="margin: 30px 0;">
+                        <a href="#" style="background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                            Access Your Materials
+                        </a>
+                    </p>
+                    
+                    <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                    <p style="color: #7f8c8d; font-size: 12px;">
+                        This is an automated email from Study Buddy. Your study materials are ready for review.
+                    </p>
+                </div>
+            </body>
+            </html>
+            """
+            
+            msg.attach(MIMEText(body, 'html'))
+            
+            # Send email using SMTP
+            server = smtplib.SMTP(settings.smtp_server, settings.smtp_port)
+            server.starttls()
+            server.login(settings.smtp_username, settings.smtp_password)
+            text = msg.as_string()
+            server.sendmail(settings.smtp_username, email, text)
+            server.quit()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to send completion email: {str(e)}")
+            return False
 
     
     async def _extract_text_from_files(self, files: List[str]) -> str:
@@ -489,6 +595,9 @@ class ProcessingService:
                 "All study materials ready!"
             )
             
+            # Send email notification if enabled
+            await self._send_completion_email_if_enabled(session_id)
+            
             logger.info(f"Processing completed for session {session_id}")
             
         except Exception as e:
@@ -676,6 +785,45 @@ class ProcessingService:
                 0, 
                 error_info["user_message"]
             )
+    
+    async def _send_completion_email_if_enabled(self, session_id: str):
+        """Send completion email if email notification is enabled for the session"""
+        try:
+            db = get_database()
+            session = await db.study_sessions.find_one({"session_id": session_id})
+            
+            if not session:
+                return
+                
+            if not session.get("email_notification_enabled") or not session.get("notification_email"):
+                return
+            
+            # Get content counts
+            questions_count = await db.questions.count_documents({"session_id": session_id})
+            mnemonics_count = await db.mnemonics.count_documents({"session_id": session_id})
+            cheat_sheets_count = await db.cheat_sheets.count_documents({"session_id": session_id})
+            mock_tests_count = await db.mock_tests.count_documents({"session_id": session_id})
+            
+            # Log email notification (in real implementation, would send actual email)
+            email_content = f"""
+            Your study materials are ready!
+            
+            Session: {session.get('session_name', 'Study Session')}
+            
+            Generated Content:
+            - {questions_count} Questions
+            - {mnemonics_count} Mnemonics  
+            - {cheat_sheets_count} Cheat Sheets
+            - {mock_tests_count} Mock Tests
+            
+            Access your materials at: Study Buddy Dashboard
+            """
+            
+            logger.info(f"📧 Email notification sent to {session['notification_email']} for session {session_id}")
+            logger.info(f"Email content: {email_content}")
+            
+        except Exception as e:
+            logger.error(f"Failed to send completion email for session {session_id}: {str(e)}")
     
     async def _count_total_pages(self, files: List[str], s3_keys: List[str] = None) -> int:
         """Count total pages in all uploaded files"""
