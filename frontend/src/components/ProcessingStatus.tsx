@@ -116,7 +116,7 @@ function ProcessingStatus({ sessionId, onComplete }: ProcessingStatusProps) {
               <FiLoader className="w-8 h-8 text-white animate-spin" />
             </div>
           </div>
-          <p className="text-pink-600 font-medium">Loading status...</p>
+          <p className="text-pink-600 font-medium">processing</p>
         </div>
       </div>
     )
