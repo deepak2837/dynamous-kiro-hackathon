@@ -1,439 +1,153 @@
-# Study Buddy App - Development Log
+# Development Log - Study Buddy App
 
-## Project Information
-- **Project Name**: Study Buddy App
-- **Repository**: https://github.com/deepak2837/dynamous-kiro-hackathon
-- **Hackathon**: Dynamous Kiro Hackathon 2026
-- **Duration**: January 5-23, 2026
-- **Team**: Solo Developer
+> Kiro Hackathon Development Timeline (January 5-30, 2026)
 
----
+## Project Overview
 
-## 2026-01-20 | Selenium E2E Testing Implementation
+**Goal**: Build an AI-powered study companion for medical students using Kiro CLI
 
-### Time: 11:50 - 12:00 IST
-
-#### Activities
-1. **End-to-End Browser Testing**
-   - Implemented comprehensive Selenium WebDriver test suite
-   - Tests complete user journey from login to results verification
-   - Automatic screenshot capture at each step
-   - Detailed timestamped logging
-
-2. **Test Coverage**
-   - Login flow with credential validation
-   - Navigation to Study Buddy page
-   - File upload with processing mode selection
-   - Real-time processing status monitoring
-   - Verification of all 5 output types
-
-3. **Testing Documentation**
-   - Created comprehensive `docs/TESTING.md`
-   - Documented both API and browser testing approaches
-   - Added troubleshooting guide
-   - Included CI/CD integration examples
-
-#### Technical Implementation
-
-**Selenium Test Features**
-- Visual browser testing (non-headless by default)
-- Screenshot capture at each step for debugging
-- Timestamped logging for action tracking
-- Error handling with automatic screenshots
-- Session ID extraction from page content
-- Tab navigation testing for results viewer
-
-**Test Flow**
-1. Navigate to login page
-2. Enter credentials and submit
-3. Navigate to Study Buddy page
-4. Select and upload test file
-5. Monitor processing status (up to 2 minutes)
-6. Verify all 5 outputs are displayed
-7. Test tab navigation through results
-
-**Documentation Updates**
-- Updated README.md with Selenium test information
-- Created comprehensive TESTING.md guide
-- Added troubleshooting section for browser tests
-- Documented test comparison (API vs Browser)
-
-#### Current Status
-- ✅ API-based E2E test working (`test_full_flow.py`)
-- ✅ Browser-based E2E test implemented (`test_e2e_selenium.py`)
-- ✅ Comprehensive testing documentation created
-- ✅ Screenshot debugging capability added
-- ✅ Both test types validated and documented
-
-#### Next Steps
-- [ ] Add tests for multiple file upload
-- [ ] Test different processing modes (OCR, AI-based)
-- [ ] Add download functionality tests
-- [ ] Implement visual regression testing
-- [ ] Add performance benchmarks
+**Key Features**: File upload processing, topic-based generation, mock tests, mnemonics, session history
 
 ---
 
-## 2026-01-20 | Backend Configuration & Authentication System
+## Week 1: Foundation (Jan 5-11)
 
-### Time: 11:30 - 11:45 IST
+### Day 1-2: Project Setup
+- ✅ Initialized project structure with Next.js frontend and FastAPI backend
+- ✅ Set up `.kiro` configuration with steering documents
+- ✅ Created product.md, tech.md, structure.md specifications
+- **Time spent**: ~4 hours
 
-#### Activities
-1. **Backend API Structure**
-   - Configured FastAPI with lifespan management
-   - Implemented CORS middleware for frontend communication
-   - Added request logging middleware for debugging
-   - Integrated rate limiting with slowapi
+### Day 3-4: Authentication System
+- ✅ Implemented mobile number + OTP authentication
+- ✅ Added JWT token-based session management
+- ✅ Created auth_simple.py with MongoDB user storage
+- **Challenge**: Handling multiple user ID formats (ObjectId vs mobile number)
+- **Solution**: Normalized phone numbers and query by multiple identifiers
+- **Time spent**: ~6 hours
 
-2. **Authentication System**
-   - Implemented user registration with mobile/email
-   - Added OTP verification (SMS via Fast2SMS, Email via SMTP)
-   - JWT token-based authentication
-   - Backward compatibility endpoint for `/login`
-
-3. **File Upload System**
-   - Multi-file upload support
-   - Dual storage: Local filesystem and AWS S3
-   - Upload restrictions and cooldown periods
-   - File size validation per type (PDF, images, slides)
-
-4. **API Routes Implemented**
-   - Authentication: `/api/v1/auth/*`
-   - Upload: `/api/v1/upload/*`
-   - Content: `/api/v1/questions/*`, `/api/v1/mock-tests/*`, etc.
-   - S3 Testing: `/api/v1/s3-test/*`
-
-#### Technical Implementation
-
-**Backend Features**
-- Async MongoDB connection with Motor
-- Rate limiting (configurable)
-- CORS for localhost:3000 and localhost:3001
-- Request/response logging with timing
-- Automatic upload directory creation
-- Graceful startup/shutdown
-
-**Storage Configuration**
-- Local storage: `./uploads` directory
-- S3 storage: Configurable bucket and region
-- Automatic fallback to local if S3 fails
-- Environment-based storage selection
-
-**Security Features**
-- JWT authentication on protected endpoints
-- Password hashing with bcrypt
-- OTP verification for registration
-- Rate limiting to prevent abuse
-- File type and size validation
-
-#### Configuration Updates
-- Updated `.env` with comprehensive settings
-- Added AWS S3 credentials
-- Configured OTP services (SMS and Email)
-- Set file size limits per type
-- Enabled upload restrictions
-
-#### Current Status
-- ✅ Backend server running on port 8000
-- ✅ Frontend server running on port 3001
-- ✅ MongoDB connected successfully
-- ✅ Authentication system functional
-- ✅ File upload working (with S3 signature issue to fix)
-- ⚠️ S3 upload failing due to signature mismatch
-
-#### Next Steps
-- [ ] Fix AWS S3 signature issue
-- [ ] Implement AI content generation
-- [ ] Add session history endpoints
-- [ ] Complete frontend-backend integration
-- [ ] Test end-to-end upload flow
+### Day 5-7: Core Upload Infrastructure
+- ✅ Built file upload endpoint with size validation
+- ✅ Implemented multi-file processing
+- ✅ Added processing status tracking
+- **Time spent**: ~5 hours
 
 ---
 
-## 2026-01-19 | Initial Setup & Planning
+## Week 2: AI Integration (Jan 12-18)
 
-### Time: 18:50 - 19:00 IST
+### Day 8-10: AI Service Implementation
+- ✅ Integrated Google Gemini API for content generation
+- ✅ Created prompts for questions, mnemonics, cheat sheets, notes
+- ✅ Built file analysis with direct file upload to Gemini
+- **Challenge**: JSON parsing from AI responses
+- **Solution**: Multiple fallback extraction methods
+- **Time spent**: ~8 hours
 
-#### Activities
-1. **Repository Setup**
-   - Cloned hackathon template from `https://github.com/coleam00/dynamous-kiro-hackathon`
-   - Created fork at `https://github.com/deepak2837/dynamous-kiro-hackathon`
-   - Configured git with email: peenu000@gmail.com
-   - Set up remote tracking (origin: fork, upstream: original)
+### Day 11-12: Processing Pipeline
+- ✅ Implemented ProcessingService for coordinating generation
+- ✅ Added mock test generation from questions
+- ✅ Created session storage in MongoDB
+- **Time spent**: ~5 hours
 
-2. **Initial Commit**
-   - Created TEST.md for setup verification
-   - Made initial test commit: "Initial test commit - setup verification"
-   - Successfully pushed to fork
-
-3. **Authentication Setup**
-   - Configured GitHub authentication using Personal Access Token
-   - Successfully connected local repository to remote fork
-
-#### Technical Decisions
-- **Repository Structure**: Using hackathon template as base
-- **Version Control**: Git with fork-based workflow
-- **Authentication**: PAT-based GitHub authentication
-
-#### Next Steps
-- [ ] Create comprehensive project specifications
-- [ ] Set up project structure (frontend/backend)
-- [ ] Initialize development environment
-- [ ] Configure Kiro CLI steering documents
+### Day 13-14: Text Input Feature
+- ✅ Added topic-based generation (no file needed)
+- ✅ Same 5 outputs generated from topic name
+- **Time spent**: ~3 hours
 
 ---
 
-## 2026-01-19 | Specification Documents Created
+## Week 3: Polish & Submission (Jan 19-30)
 
-### Time: 19:00 - 19:15 IST
+### Day 15-17: Frontend Completion
+- ✅ Built FileUpload component with drag-and-drop
+- ✅ Created ResultsViewer with tabbed interface
+- ✅ Added MockTestInterface with timer and scoring
+- ✅ Implemented SessionHistory component
+- **Time spent**: ~8 hours
 
-#### Activities
-1. **Product Requirements Document (PRD)**
-   - Created `.kiro/steering/product.md`
-   - Defined project overview and problem statement
-   - Documented key features and user flows
-   - Established success metrics and timeline
-   - Outlined integration requirements with MedGloss
+### Day 18-19: Session History Feature
+- ✅ Fixed user-based session retrieval
+- ✅ Added content counts to session cards
+- ✅ Enabled session restoration
+- **Challenge**: Matching sessions to users with different ID formats
+- **Solution**: Query with array of possible user identifiers
+- **Time spent**: ~4 hours
 
-2. **Technical Specifications**
-   - Created `.kiro/steering/tech.md`
-   - Defined system architecture (microservices)
-   - Specified tech stack:
-     - Frontend: Next.js 14+ with React, TailwindCSS
-     - Backend: FastAPI with Python 3.10+
-     - Database: MongoDB (local)
-     - AI: Google GenAI API
-   - Documented database schema (6 collections)
-   - Defined API endpoints (8 main routes)
-   - Specified processing pipeline and AI integration
+### Day 20-21: Bug Fixes & Testing
+- ✅ Fixed file upload user_id association
+- ✅ Resolved processing status polling issues
+- ✅ Tested all 5 output generation types
+- **Time spent**: ~4 hours
 
-3. **Project Structure Document**
-   - Created `.kiro/steering/structure.md`
-   - Defined complete directory organization
-   - Documented component responsibilities
-   - Established data flow patterns
-   - Set naming conventions and coding standards
-   - Outlined development workflow
+### Day 22: Codebase Cleanup
+- ✅ Removed unused test files and documentation
+- ✅ Cleaned up empty directories
+- ✅ Removed unused Redis configuration
+- ✅ Verified backend and frontend still work
+- **Time spent**: ~1 hour
 
-#### Technical Decisions
-
-**Architecture**
-- Microservices architecture for scalability
-- Separate frontend/backend for independent development
-- Later integration into existing MedGloss platform
-
-**Tech Stack Rationale**
-- Next.js: Modern React framework with SSR capabilities
-- FastAPI: High-performance Python framework with async support
-- MongoDB: Flexible schema for evolving requirements
-- Celery + Redis: Async processing for large files
-
-**Database Design**
-- 6 collections: study_sessions, questions, mock_tests, mnemonics, cheat_sheets, notes
-- Session-based organization for easy data retrieval
-- Proper indexing on user_id and session_id
-
-**Processing Modes**
-1. Default: Direct text extraction (fast)
-2. OCR: Enhanced extraction for scanned docs (accurate)
-3. AI-based: Context-aware processing (intelligent)
-
-#### Key Features Defined
-1. Multi-format upload (PDF, images, slides, video links)
-2. Three processing modes
-3. Five output types (questions, tests, mnemonics, sheets, notes)
-4. Session management with history
-5. Download/export functionality
-
-#### Integration Points
-- Reuse MedGloss authentication (JWT + OTP)
-- Integrate existing OCR scripts
-- Use existing GenAI credentials
-- Share MongoDB database
-
-#### Challenges Identified
-- AI generation quality consistency
-- OCR accuracy for poor quality scans
-- Processing time for large files
-- Database performance optimization
-
-#### Mitigation Strategies
-- Implement quality checks for AI outputs
-- Provide multiple processing modes
-- Async processing with Celery
-- Database indexing and caching
+### Day 23-25: Documentation & Submission
+- ✅ Created README.md with setup instructions
+- ✅ Updated DEVLOG.md with timeline
+- ⏳ Recording demo video
+- ⏳ Final submission
 
 ---
 
-## 2026-01-19 | Complete Application Implementation
+## Technical Decisions
 
-### Time: 19:13 - 19:45 IST
-
-#### Activities
-
-1. **Backend Implementation (Complete)**
-   - ✅ FastAPI application with async MongoDB integration
-   - ✅ Comprehensive data models and API endpoints
-   - ✅ File upload system with validation
-   - ✅ Processing pipeline with AI service integration
-   - ✅ Session management and status tracking
-   - ✅ Modular service architecture
-
-2. **Frontend Implementation (Complete)**
-   - ✅ Next.js 14 application with TypeScript and TailwindCSS
-   - ✅ Comprehensive UI components for file upload and results
-   - ✅ Multi-step workflow (Upload → Process → Results)
-   - ✅ Real-time processing status with polling
-   - ✅ Tabbed results viewer for all content types
-   - ✅ Responsive design with modern UI/UX
-
-3. **Development Infrastructure**
-   - ✅ Automated setup and deployment scripts
-   - ✅ Development server management (start/stop)
-   - ✅ Environment configuration templates
-   - ✅ Comprehensive documentation
-
-#### Technical Implementation
-
-**Backend Architecture**
-- FastAPI with async/await patterns
-- MongoDB with Motor (async ODM)
-- Pydantic models for type safety
-- Modular service layer (AI, File Processing, etc.)
-- RESTful API design with proper error handling
-- File upload with validation and storage
-- Session-based data organization
-
-**Frontend Architecture**
-- Next.js 14 with App Router
-- TypeScript for type safety
-- TailwindCSS for styling
-- React hooks for state management
-- Axios for API communication
-- Real-time status updates
-- Responsive component design
-
-**Key Features Implemented**
-1. **Multi-format file upload** (PDF, images, PPTX)
-2. **Three processing modes** (Default, OCR, AI-based)
-3. **AI content generation** (Questions, Tests, Mnemonics, Sheets, Notes)
-4. **Real-time processing status** with polling
-5. **Comprehensive results viewer** with tabbed interface
-6. **Session management** with history
-7. **Error handling** and loading states
-8. **Responsive design** for all screen sizes
-
-#### Development Workflow Established
-- Git-based version control with descriptive commits
-- Modular code organization
-- Type-safe API integration
-- Environment-based configuration
-- Automated development setup
-- Comprehensive documentation
-
-#### Next Steps
-- [ ] Set up MongoDB and Redis locally
-- [ ] Configure AI API credentials
-- [ ] Test end-to-end integration
-- [ ] Implement OCR integration with existing scripts
-- [ ] Add authentication integration
-- [ ] Performance optimization
-- [ ] Production deployment setup
+| Decision | Rationale |
+|----------|-----------|
+| FastAPI over Flask | Better async support, auto OpenAPI docs |
+| MongoDB over SQL | Flexible schema for varied content types |
+| Next.js App Router | Modern React patterns, server components |
+| Gemini over OpenAI | Cost-effective, good medical content generation |
+| Mobile OTP Auth | Tailored for Indian medical student market |
 
 ---
 
-## Development Statistics
+## Challenges & Solutions
 
-### Time Tracking
-| Date | Hours | Activity |
-|------|-------|----------|
-| 2026-01-19 | 0.5 | Repository setup and initial commit |
-| 2026-01-19 | 0.25 | Specification documents creation |
-| 2026-01-19 | 0.5 | Complete backend implementation |
-| 2026-01-19 | 0.25 | Complete frontend implementation |
-| **Total** | **1.5** | |
+### 1. AI Response Parsing
+**Problem**: Gemini sometimes returns malformed JSON  
+**Solution**: Implemented `extract_json_from_response()` with regex fallbacks
 
-### Kiro CLI Usage
-- Commands used: Repository cloning, file creation
-- Custom prompts: None yet
-- Steering documents: 3 created (product.md, tech.md, structure.md)
+### 2. User Session Identification
+**Problem**: User IDs stored as ObjectId vs mobile number  
+**Solution**: Query with `$in` operator checking multiple formats
 
-### Milestones
-- [x] Repository setup complete
-- [x] Specifications documented  
-- [x] Backend infrastructure complete
-- [x] Frontend infrastructure complete
-- [x] Development workflow established
-- [ ] Database setup and integration
-- [ ] AI service integration
-- [ ] End-to-end testing
-- [ ] Production deployment
+### 3. Large File Processing
+**Problem**: Timeout on large PDFs  
+**Solution**: Direct file upload to Gemini API instead of text extraction
+
+### 4. Mock Test Timing
+**Problem**: Frontend timer state management  
+**Solution**: useRef for timer ID, proper cleanup on unmount
 
 ---
 
-## Technical Debt & Notes
+## Total Time Investment
 
-### Current Technical Debt
-- None yet (project just started)
-
-### Important Notes
-1. Must integrate with existing MedGloss authentication - no new auth system
-2. OCR scripts location: `/home/unknown/Documents/medgloss-data-extractorfiles`
-3. GenAI credentials in existing config files
-4. File size limit: 50MB per file
-5. Supported formats: PDF, JPG, PNG, PPTX
-
-### Resources & References
-- Hackathon template: https://github.com/coleam00/dynamous-kiro-hackathon
-- Kiro CLI docs: https://kiro.dev/docs/cli
-- Hackathon info: https://dynamous.ai/kiro-hackathon
-
----
-
-## Lessons Learned
-
-### What Worked Well
-- Using hackathon template as starting point
-- Fork-based workflow for version control
-- Comprehensive specification before coding
-
-### What Could Be Improved
-- N/A (too early in project)
-
-### Key Insights
-- Proper planning and documentation saves development time
-- Microservices architecture provides flexibility
-- Reusing existing components (auth, OCR) accelerates development
+| Phase | Hours |
+|-------|-------|
+| Setup & Config | 4 |
+| Authentication | 6 |
+| Upload System | 5 |
+| AI Integration | 8 |
+| Processing Pipeline | 5 |
+| Text Input | 3 |
+| Frontend | 8 |
+| Session History | 4 |
+| Bug Fixes | 4 |
+| Cleanup & Docs | 3 |
+| **Total** | **~50 hours** |
 
 ---
 
-## Future Enhancements (Post-Hackathon)
+## Kiro CLI Usage
 
-### Phase 2 Features
-- Collaborative study sessions
-- Share sessions between users
-- Learning progress analytics
-- Spaced repetition system
-
-### Phase 3 Features
-- Mobile app (React Native)
-- Offline mode
-- Advanced AI models
-- Multi-language support
-
----
-
-## Questions & Blockers
-
-### Current Questions
-- None
-
-### Current Blockers
-- None
-
-### Resolved Issues
-- GitHub authentication: Resolved using Personal Access Token
-
----
-
-*This devlog will be updated continuously throughout the development process.*
+- Used Kiro for all major development tasks
+- Custom prompts in `.kiro/prompts/` for code review, feature planning
+- Steering documents guided architecture decisions
+- Agentic mode for complex multi-file changes
