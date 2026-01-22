@@ -409,9 +409,17 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                       </h3>
 
                       <div className="prose max-w-none mb-4">
-                        <div className="text-gray-700 whitespace-pre-wrap">
-                          {note.content}
-                        </div>
+                        <div 
+                          className="text-gray-700 whitespace-pre-wrap"
+                          dangerouslySetInnerHTML={{
+                            __html: note.content
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                              .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
+                              .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mt-4 mb-2">$1</h2>')
+                              .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-4 mb-2">$1</h1>')
+                          }}
+                        />
                       </div>
 
                       {note.summary_points.length > 0 && (
