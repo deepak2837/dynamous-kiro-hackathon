@@ -11,6 +11,12 @@ An AI-powered study companion for medical students that transforms study materia
 - **5 Output Types**: Questions, Mock Tests, Mnemonics, Cheat Sheets, Notes
 - **Session History**: All generated content saved and retrievable
 - **Mobile OTP Authentication**: Secure user-based sessions
+- **Interactive Mock Tests**: Take timed tests with auto-scoring and analytics
+- **Flexible File Storage**: Local filesystem or AWS S3 (configurable via environment)
+- **Rate Limiting**: API protection with configurable request limits
+- **File Size Limits**: Configurable upload limits (default: 50MB per file)
+- **Email Notifications**: Optional email alerts when processing is complete
+- **Security Features**: JWT authentication, input validation, and error handling
 
 ## 📊 System Architecture
 
@@ -350,10 +356,10 @@ graph TB
     end
     
     subgraph "API Gateway Layer"
-        API1[/api/v1/auth/*]
-        API2[/api/v1/upload/*]
-        API3[/api/v1/text-input/*]
-        API4[/api/v1/history/*]
+        API1[Auth API]
+        API2[Upload API]
+        API3[Text Input API]
+        API4[History API]
     end
     
     subgraph "Business Logic Layer"
@@ -610,6 +616,70 @@ npm run dev
 ```
 
 Open http://localhost:3000
+
+## ⚙️ Configuration Options
+
+### File Storage Configuration
+Configure file storage location via environment variables:
+
+```bash
+# Local file storage (default)
+FILE_STORAGE_TYPE=local
+UPLOAD_DIR=./uploads
+
+# AWS S3 storage
+FILE_STORAGE_TYPE=s3
+AWS_S3_BUCKET=your-bucket-name
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_REGION=us-east-1
+```
+
+### Rate Limiting & Security
+```bash
+# Rate limiting (requests per minute per user)
+RATE_LIMIT_PER_MINUTE=100
+
+# File upload limits
+MAX_FILE_SIZE=52428800  # 50MB in bytes
+MAX_FILES_PER_UPLOAD=10
+ALLOWED_FILE_TYPES=pdf,jpg,jpeg,png,pptx
+
+# Security settings
+JWT_EXPIRY_HOURS=24
+OTP_EXPIRY_MINUTES=5
+```
+
+### Mock Test Features
+- **Timed Tests**: Configurable duration (default: 60 minutes)
+- **Auto-Scoring**: Immediate results with detailed analytics
+- **Question Navigation**: Jump to any question, mark for review
+- **Performance Analytics**: Score breakdown, time per question
+- **Retry Capability**: Retake tests multiple times
+- **Progress Tracking**: Track improvement over time
+
+### Email Notification System
+```bash
+# Email service configuration
+ENABLE_EMAIL_NOTIFICATIONS=true
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+FROM_EMAIL=studybuddy@yourapp.com
+
+# Notification settings
+NOTIFY_ON_COMPLETION=true
+NOTIFY_ON_ERROR=true
+EMAIL_TEMPLATE_PATH=./templates/emails/
+```
+
+**Email Features:**
+- **Processing Complete**: Notify when AI generation is finished
+- **Error Alerts**: Notify if processing fails
+- **Custom Templates**: Professional email templates
+- **User Preference**: Users can opt-in/out of notifications
+- **Session Links**: Direct links to view results
 
 ## 📁 Project Structure
 
