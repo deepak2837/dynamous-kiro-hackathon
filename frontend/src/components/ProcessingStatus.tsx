@@ -12,7 +12,7 @@ interface ProcessingStatusProps {
 const STEP_LABELS: Record<ProcessingStep, string> = {
   [ProcessingStep.UPLOAD_COMPLETE]: "Files Uploaded",
   [ProcessingStep.FILE_ANALYSIS]: "Analyzing Files",
-  [ProcessingStep.OCR_PROCESSING]: "OCR Processing", 
+  [ProcessingStep.OCR_PROCESSING]: "OCR Processing",
   [ProcessingStep.AI_PROCESSING]: "AI Processing",
   [ProcessingStep.GENERATING_QUESTIONS]: "Generating Questions",
   [ProcessingStep.GENERATING_MOCK_TESTS]: "Creating Mock Tests",
@@ -28,7 +28,9 @@ function ProcessingStatus({ sessionId, onComplete }: ProcessingStatusProps) {
   const [status, setStatus] = useState<ProcessingStatusResponse | null>(null)
   const [showEmailOption, setShowEmailOption] = useState(false)
   const [email, setEmail] = useState('')
+  const [isEnablingNotification, setIsEnablingNotification] = useState(false)
   const [emailEnabled, setEmailEnabled] = useState(false)
+  const [notificationError, setNotificationError] = useState<string | null>(null)
 
   useEffect(() => {
     const pollStatus = async () => {
@@ -51,19 +53,33 @@ function ProcessingStatus({ sessionId, onComplete }: ProcessingStatusProps) {
   }, [sessionId, onComplete])
 
   const enableEmailNotification = async () => {
+    if (!email.trim()) {
+      setNotificationError('Please enter a valid email address')
+      return
+    }
+
+    setIsEnablingNotification(true)
+    setNotificationError(null)
+
     try {
-      const response = await fetch(`/api/v1/upload/enable-notification/${sessionId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/upload/enable-notification/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email: email.trim() })
       })
-      
+
       if (response.ok) {
         setEmailEnabled(true)
         setShowEmailOption(false)
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        setNotificationError(errorData.detail || 'Failed to enable email notification')
       }
     } catch (error) {
       console.error('Error enabling email notification:', error)
+      setNotificationError('Network error. Please try again.')
+    } finally {
+      setIsEnablingNotification(false)
     }
   }
 
@@ -99,13 +115,12 @@ function ProcessingStatus({ sessionId, onComplete }: ProcessingStatusProps) {
             </span>
           )}
         </div>
-        
+
         {/* Overall Progress Bar */}
         <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-          <div 
-            className={`h-3 rounded-full transition-all duration-500 ${
-              isFailed ? 'bg-red-500' : isCompleted ? 'bg-green-500' : 'bg-blue-500'
-            }`}
+          <div
+            className={`h-3 rounded-full transition-all duration-500 ${isFailed ? 'bg-red-500' : isCompleted ? 'bg-green-500' : 'bg-blue-500'
+              }`}
             style={{ width: `${progress?.overall_progress || 0}%` }}
           ></div>
         </div>
@@ -163,22 +178,44 @@ function ProcessingStatus({ sessionId, onComplete }: ProcessingStatusProps) {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    setNotificationError(null)
+                  }}
                   placeholder="Enter your email"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${notificationError ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                  disabled={isEnablingNotification}
                 />
+                {notificationError && (
+                  <p className="mt-1 text-sm text-red-600">{notificationError}</p>
+                )}
               </div>
               <div className="flex space-x-2">
                 <button
                   onClick={enableEmailNotification}
-                  disabled={!email}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+                  disabled={!email || isEnablingNotification}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:bg-gray-400 flex items-center"
                 >
-                  Enable Notifications
+                  {isEnablingNotification ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Enabling...
+                    </>
+                  ) : (
+                    'Enable Notifications'
+                  )}
                 </button>
                 <button
-                  onClick={() => setShowEmailOption(false)}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400"
+                  onClick={() => {
+                    setShowEmailOption(false)
+                    setNotificationError(null)
+                  }}
+                  disabled={isEnablingNotification}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400 disabled:opacity-50"
                 >
                   Cancel
                 </button>
