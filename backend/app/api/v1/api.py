@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from app.api.v1.endpoints import auth, sessions, questions, mock_tests, mnemonics, cheat_sheets, notes, text_input, upload, notifications
 
 api_router = APIRouter()
 
