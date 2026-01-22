@@ -7,6 +7,7 @@ import InteractiveQuestion from './InteractiveQuestion';
 import MockTestDialog from './MockTestDialog';
 import MockTestInterface from './MockTestInterface';
 import MockTestResults from './MockTestResults';
+import { FiLoader, FiPlay, FiClock, FiFileText, FiStar } from 'react-icons/fi';
 
 interface ResultsViewerProps {
   sessionId: string;
@@ -44,7 +45,6 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
       switch (contentType) {
         case 'questions':
           const questionsResponse = await StudyBuddyAPI.getSessionQuestions(sessionId);
-          // API returns array directly or object with questions property
           const questionsData = Array.isArray(questionsResponse)
             ? questionsResponse
             : questionsResponse?.questions || questionsResponse || [];
@@ -81,23 +81,12 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
       }
     } catch (error) {
       console.error(`Failed to load ${contentType}:`, error);
-      // Reset to empty array on error
       switch (contentType) {
-        case 'questions':
-          setQuestions([]);
-          break;
-        case 'mock-tests':
-          setMockTests([]);
-          break;
-        case 'mnemonics':
-          setMnemonics([]);
-          break;
-        case 'cheat-sheets':
-          setCheatSheets([]);
-          break;
-        case 'notes':
-          setNotes([]);
-          break;
+        case 'questions': setQuestions([]); break;
+        case 'mock-tests': setMockTests([]); break;
+        case 'mnemonics': setMnemonics([]); break;
+        case 'cheat-sheets': setCheatSheets([]); break;
+        case 'notes': setNotes([]); break;
       }
     } finally {
       setLoading(false);
@@ -106,14 +95,10 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
 
   const getDifficultyClass = (difficulty: DifficultyLevel) => {
     switch (difficulty) {
-      case DifficultyLevel.EASY:
-        return 'difficulty-easy';
-      case DifficultyLevel.MEDIUM:
-        return 'difficulty-medium';
-      case DifficultyLevel.HARD:
-        return 'difficulty-hard';
-      default:
-        return 'difficulty-medium';
+      case DifficultyLevel.EASY: return 'difficulty-easy';
+      case DifficultyLevel.MEDIUM: return 'difficulty-medium';
+      case DifficultyLevel.HARD: return 'difficulty-hard';
+      default: return 'difficulty-medium';
     }
   };
 
@@ -130,19 +115,15 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
     setLoading(true);
 
     try {
-      // Fetch all questions for this test
       const questionsData = await StudyBuddyAPI.getSessionQuestions(sessionId, 0, 100);
       const questionsArray = Array.isArray(questionsData) ? questionsData : (questionsData as any)?.questions || [];
 
-      // Filter to get only questions in this test (if test has question IDs)
       let testQs = questionsArray;
       if (selectedTest.questions && selectedTest.questions.length > 0) {
-        // Filter by question IDs if available
         const testQuestionIds = new Set(selectedTest.questions);
         testQs = questionsArray.filter((q: Question) =>
           testQuestionIds.has((q as any).question_id || (q as any).id)
         );
-        // If filter resulted in empty, use all questions
         if (testQs.length === 0) testQs = questionsArray;
       }
 
@@ -158,20 +139,13 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
   const handleTestSubmit = (answers: Record<string, string>, timeSpent: number) => {
     if (!selectedTest) return;
 
-    // Calculate results
     const results = testQuestions.map((q) => {
       const questionId = (q as any).question_id || (q as any).id;
       const userAnswer = answers[questionId] || '';
       const correctAnswer = String((q as any).correct_answer || 'A');
       const isCorrect = userAnswer === correctAnswer;
 
-      return {
-        questionId,
-        userAnswer,
-        correctAnswer,
-        isCorrect,
-        question: q
-      };
+      return { questionId, userAnswer, correctAnswer, isCorrect, question: q };
     });
 
     setTestResults({
@@ -212,54 +186,60 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as ContentType)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === tab.id
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              <span className="flex items-center space-x-2">
-                <span>{tab.icon}</span>
+      <div className="relative">
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-2 border border-pink-100 shadow-lg shadow-pink-100/20">
+          <nav className="flex space-x-1 overflow-x-auto">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as ContentType)}
+                className={`relative py-3 px-4 font-medium text-sm whitespace-nowrap rounded-xl transition-all duration-300 flex items-center space-x-2 ${activeTab === tab.id
+                    ? 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-lg shadow-pink-300/50'
+                    : 'text-gray-600 hover:text-pink-600 hover:bg-pink-50'
+                  }`}
+              >
+                <span className="text-lg">{tab.icon}</span>
                 <span>{tab.label}</span>
                 {tab.count > 0 && (
-                  <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === tab.id
+                      ? 'bg-white/30 text-white'
+                      : 'bg-pink-100 text-pink-600'
+                    }`}>
                     {tab.count}
                   </span>
                 )}
-              </span>
-            </button>
-          ))}
-        </nav>
+              </button>
+            ))}
+          </nav>
+        </div>
       </div>
 
       {/* Content */}
       <div className="min-h-96">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-2 text-gray-600">Loading...</span>
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-fuchsia-500 rounded-full animate-ping opacity-30" />
+                <div className="relative w-16 h-16 bg-gradient-to-r from-pink-500 to-fuchsia-500 rounded-full flex items-center justify-center">
+                  <FiLoader className="w-8 h-8 text-white animate-spin" />
+                </div>
+              </div>
+              <p className="text-pink-600 font-medium">Loading content...</p>
+            </div>
           </div>
         ) : (
-          <div>
+          <div className="space-y-4">
             {/* Questions Tab */}
             {activeTab === 'questions' && (
               <div className="space-y-4">
                 {questions.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    No questions generated yet.
-                  </div>
+                  <EmptyState icon="❓" message="No questions generated yet." />
                 ) : (
                   questions.map((question, index) => (
-                    <InteractiveQuestion
-                      key={(question as any).question_id || (question as any).id || index}
-                      question={question}
-                      index={index}
-                    />
+                    <div key={(question as any).question_id || (question as any).id || index} className="animate-slide-up" style={{ animationDelay: `${index * 50}ms` }}>
+                      <InteractiveQuestion question={question} index={index} />
+                    </div>
                   ))
                 )}
               </div>
@@ -269,27 +249,41 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
             {activeTab === 'mock-tests' && (
               <div className="space-y-4">
                 {mockTests.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    No mock tests generated yet.
-                  </div>
+                  <EmptyState icon="📊" message="No mock tests generated yet." />
                 ) : (
-                  mockTests.map((test) => (
-                    <div key={test.test_id} className="card">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            {test.test_name}
-                          </h3>
-                          <div className="flex space-x-4 text-sm text-gray-600">
-                            <span>📝 {test.total_questions} questions</span>
-                            <span>⏱️ {test.duration_minutes} minutes</span>
+                  mockTests.map((test, index) => (
+                    <div
+                      key={test.test_id}
+                      className="card group animate-slide-up"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="flex items-start space-x-4">
+                          <div className="w-14 h-14 bg-gradient-to-br from-pink-400 to-fuchsia-500 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-200/50 group-hover:scale-110 transition-transform duration-300">
+                            <span className="text-2xl">📝</span>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-pink-600 transition-colors">
+                              {test.test_name}
+                            </h3>
+                            <div className="flex flex-wrap gap-3 mt-2">
+                              <span className="flex items-center text-sm text-gray-600 bg-pink-50 px-3 py-1 rounded-full">
+                                <FiFileText className="w-4 h-4 mr-1 text-pink-500" />
+                                {test.total_questions} questions
+                              </span>
+                              <span className="flex items-center text-sm text-gray-600 bg-fuchsia-50 px-3 py-1 rounded-full">
+                                <FiClock className="w-4 h-4 mr-1 text-fuchsia-500" />
+                                {test.duration_minutes} minutes
+                              </span>
+                            </div>
                           </div>
                         </div>
                         <button
-                          className="btn-primary"
+                          className="btn-primary flex items-center space-x-2"
                           onClick={() => handleStartTest(test)}
                         >
-                          Start Test
+                          <FiPlay className="w-4 h-4" />
+                          <span>Start Test</span>
                         </button>
                       </div>
                     </div>
@@ -302,27 +296,29 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
             {activeTab === 'mnemonics' && (
               <div className="space-y-4">
                 {mnemonics.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    No mnemonics generated yet.
-                  </div>
+                  <EmptyState icon="🧠" message="No mnemonics generated yet." />
                 ) : (
-                  mnemonics.map((mnemonic) => (
-                    <div key={mnemonic.mnemonic_id} className="card">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  mnemonics.map((mnemonic, index) => (
+                    <div
+                      key={mnemonic.mnemonic_id}
+                      className="card animate-slide-up"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <h3 className="text-lg font-bold text-gray-900 mb-3">
                         {mnemonic.topic}
                       </h3>
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-3">
-                        <p className="text-yellow-800 font-medium text-lg">
+                      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-2xl p-5 mb-4">
+                        <p className="text-amber-800 font-bold text-xl text-center">
                           "{mnemonic.mnemonic_text}"
                         </p>
                       </div>
-                      <p className="text-gray-700 mb-3">{mnemonic.explanation}</p>
+                      <p className="text-gray-700 mb-4 leading-relaxed">{mnemonic.explanation}</p>
                       {mnemonic.key_terms.length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {mnemonic.key_terms.map((term, index) => (
+                          {mnemonic.key_terms.map((term, idx) => (
                             <span
-                              key={index}
-                              className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm"
+                              key={idx}
+                              className="bg-pink-100 text-pink-700 px-3 py-1.5 rounded-full text-sm font-medium"
                             >
                               {term}
                             </span>
@@ -339,36 +335,45 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
             {activeTab === 'cheat-sheets' && (
               <div className="space-y-4">
                 {cheatSheets.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    No cheat sheets generated yet.
-                  </div>
+                  <EmptyState icon="📋" message="No cheat sheets generated yet." />
                 ) : (
-                  cheatSheets.map((sheet) => (
-                    <div key={sheet.sheet_id} className="card">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  cheatSheets.map((sheet, index) => (
+                    <div
+                      key={sheet.sheet_id}
+                      className="card animate-slide-up"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                        <span className="text-2xl mr-3">📋</span>
                         {sheet.title}
                       </h3>
 
                       <div className="grid md:grid-cols-2 gap-6">
-                        <div>
-                          <h4 className="font-medium text-gray-900 mb-2">Key Points</h4>
-                          <ul className="space-y-1">
-                            {sheet.key_points.map((point, index) => (
-                              <li key={index} className="text-sm text-gray-700 flex items-start">
-                                <span className="text-blue-600 mr-2">•</span>
-                                {point}
+                        <div className="bg-pink-50/50 rounded-2xl p-5">
+                          <h4 className="font-bold text-pink-700 mb-4 flex items-center">
+                            <span className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center mr-2">📌</span>
+                            Key Points
+                          </h4>
+                          <ul className="space-y-2">
+                            {sheet.key_points.map((point, idx) => (
+                              <li key={idx} className="text-sm text-gray-700 flex items-start">
+                                <span className="text-pink-500 mr-2 mt-1">•</span>
+                                <span>{point}</span>
                               </li>
                             ))}
                           </ul>
                         </div>
 
-                        <div>
-                          <h4 className="font-medium text-gray-900 mb-2">High-Yield Facts</h4>
-                          <ul className="space-y-1">
-                            {sheet.high_yield_facts.map((fact, index) => (
-                              <li key={index} className="text-sm text-gray-700 flex items-start">
-                                <span className="text-red-600 mr-2">★</span>
-                                {fact}
+                        <div className="bg-rose-50/50 rounded-2xl p-5">
+                          <h4 className="font-bold text-rose-700 mb-4 flex items-center">
+                            <span className="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center mr-2">⭐</span>
+                            High-Yield Facts
+                          </h4>
+                          <ul className="space-y-2">
+                            {sheet.high_yield_facts.map((fact, idx) => (
+                              <li key={idx} className="text-sm text-gray-700 flex items-start">
+                                <FiStar className="text-rose-500 mr-2 mt-1 flex-shrink-0 w-4 h-4" />
+                                <span>{fact}</span>
                               </li>
                             ))}
                           </ul>
@@ -376,12 +381,15 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                       </div>
 
                       {sheet.quick_references && Object.keys(sheet.quick_references).length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <h4 className="font-medium text-gray-900 mb-2">Quick References</h4>
+                        <div className="mt-6 pt-6 border-t border-pink-100">
+                          <h4 className="font-bold text-gray-900 mb-4 flex items-center">
+                            <span className="text-xl mr-2">📚</span>
+                            Quick References
+                          </h4>
                           <div className="grid gap-2">
                             {Object.entries(sheet.quick_references).map(([term, definition]) => (
-                              <div key={term} className="bg-gray-50 p-2 rounded">
-                                <span className="font-medium text-gray-900">{term}:</span>{' '}
+                              <div key={term} className="bg-white/70 p-3 rounded-xl border border-pink-100">
+                                <span className="font-semibold text-pink-700">{term}:</span>{' '}
                                 <span className="text-gray-700">{definition}</span>
                               </div>
                             ))}
@@ -398,38 +406,44 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
             {activeTab === 'notes' && (
               <div className="space-y-4">
                 {notes.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    No notes generated yet.
-                  </div>
+                  <EmptyState icon="📖" message="No notes generated yet." />
                 ) : (
-                  notes.map((note) => (
-                    <div key={note.note_id} className="card">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  notes.map((note, index) => (
+                    <div
+                      key={note.note_id}
+                      className="card animate-slide-up"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                        <span className="text-2xl mr-3">📖</span>
                         {note.title}
                       </h3>
 
-                      <div className="prose max-w-none mb-4">
-                        <div 
-                          className="text-gray-700 whitespace-pre-wrap"
+                      <div className="prose max-w-none mb-6">
+                        <div
+                          className="text-gray-700 whitespace-pre-wrap leading-relaxed"
                           dangerouslySetInnerHTML={{
                             __html: note.content
-                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              .replace(/\*\*(.*?)\*\*/g, '<strong class="text-pink-700">$1</strong>')
                               .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                              .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
-                              .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mt-4 mb-2">$1</h2>')
-                              .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-4 mb-2">$1</h1>')
+                              .replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold mt-6 mb-3 text-gray-900">$1</h3>')
+                              .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold mt-6 mb-3 text-gray-900">$1</h2>')
+                              .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-6 mb-3 text-gray-900">$1</h1>')
                           }}
                         />
                       </div>
 
                       {note.summary_points.length > 0 && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                          <h4 className="font-medium text-blue-900 mb-2">Summary Points</h4>
-                          <ul className="space-y-1">
-                            {note.summary_points.map((point, index) => (
-                              <li key={index} className="text-sm text-blue-800 flex items-start">
-                                <span className="text-blue-600 mr-2">•</span>
-                                {point}
+                        <div className="bg-gradient-to-r from-pink-50 to-fuchsia-50 border-2 border-pink-200 rounded-2xl p-5">
+                          <h4 className="font-bold text-pink-700 mb-4 flex items-center">
+                            <span className="text-xl mr-2">✨</span>
+                            Summary Points
+                          </h4>
+                          <ul className="space-y-2">
+                            {note.summary_points.map((point, idx) => (
+                              <li key={idx} className="text-sm text-pink-800 flex items-start">
+                                <span className="text-pink-500 mr-2 mt-1">•</span>
+                                <span>{point}</span>
                               </li>
                             ))}
                           </ul>
@@ -477,6 +491,15 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
           onRetakeTest={handleRetakeTest}
         />
       )}
+    </div>
+  );
+}
+
+function EmptyState({ icon, message }: { icon: string; message: string }) {
+  return (
+    <div className="card text-center py-16">
+      <div className="text-6xl mb-4 animate-float">{icon}</div>
+      <p className="text-gray-500 text-lg">{message}</p>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { FiClock, FiFileText, FiAlertTriangle, FiPlay, FiX } from 'react-icons/fi';
 
 interface MockTestDialogProps {
   testName: string;
@@ -8,75 +9,107 @@ interface MockTestDialogProps {
   onCancel: () => void;
 }
 
-export default function MockTestDialog({ 
-  testName, 
-  totalQuestions, 
-  duration, 
-  onStart, 
-  onCancel 
+export default function MockTestDialog({
+  testName,
+  totalQuestions,
+  duration,
+  onStart,
+  onCancel
 }: MockTestDialogProps) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">📝</span>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-md w-full shadow-2xl shadow-pink-500/20 border border-pink-100 animate-scale-in">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="relative inline-block mb-4">
+            <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-fuchsia-500 rounded-2xl blur-lg opacity-50 animate-pulse" />
+            <div className="relative w-20 h-20 bg-gradient-to-br from-pink-500 to-fuchsia-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-4xl">📝</span>
+            </div>
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold gradient-text mb-2">
             Start Mock Test
           </h2>
-          <h3 className="text-lg text-gray-700 mb-4">
+          <h3 className="text-lg text-gray-700 font-medium">
             {testName}
           </h3>
         </div>
 
-        <div className="space-y-4 mb-6">
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span className="text-gray-600">Total Questions:</span>
-            <span className="font-semibold text-gray-900">{totalQuestions}</span>
+        {/* Test Info */}
+        <div className="space-y-3 mb-6">
+          <div className="flex items-center justify-between p-4 bg-pink-50/50 rounded-xl border border-pink-100">
+            <span className="text-gray-600 flex items-center">
+              <FiFileText className="w-5 h-5 mr-2 text-pink-500" />
+              Total Questions
+            </span>
+            <span className="font-bold text-gray-900 bg-white px-3 py-1 rounded-lg shadow-sm">{totalQuestions}</span>
           </div>
-          
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span className="text-gray-600">Duration:</span>
-            <span className="font-semibold text-gray-900">{duration} minutes</span>
+
+          <div className="flex items-center justify-between p-4 bg-fuchsia-50/50 rounded-xl border border-fuchsia-100">
+            <span className="text-gray-600 flex items-center">
+              <FiClock className="w-5 h-5 mr-2 text-fuchsia-500" />
+              Duration
+            </span>
+            <span className="font-bold text-gray-900 bg-white px-3 py-1 rounded-lg shadow-sm">{duration} minutes</span>
           </div>
-          
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span className="text-gray-600">Time per question:</span>
-            <span className="font-semibold text-gray-900">
-              ~{Math.round(duration / totalQuestions * 60)} seconds
+
+          <div className="flex items-center justify-between p-4 bg-purple-50/50 rounded-xl border border-purple-100">
+            <span className="text-gray-600 flex items-center">
+              ⏱️ Time per question
+            </span>
+            <span className="font-bold text-gray-900 bg-white px-3 py-1 rounded-lg shadow-sm">
+              ~{Math.round(duration / totalQuestions * 60)}s
             </span>
           </div>
         </div>
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <div className="flex items-start">
-            <span className="text-yellow-600 mr-2">⚠️</span>
-            <div className="text-sm text-yellow-800">
-              <p className="font-semibold mb-2">Important Instructions:</p>
-              <ul className="space-y-1 text-xs">
-                <li>• The test will open in fullscreen mode</li>
-                <li>• Timer will start immediately</li>
-                <li>• Exiting fullscreen will auto-submit the test</li>
-                <li>• You can navigate between questions freely</li>
-                <li>• Test will auto-submit when time expires</li>
+        {/* Important Instructions */}
+        <div className="bg-amber-50/80 border-2 border-amber-200 rounded-2xl p-5 mb-8">
+          <div className="flex items-start space-x-3">
+            <FiAlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-amber-800 mb-3">Important Instructions</p>
+              <ul className="space-y-2 text-sm text-amber-700">
+                <li className="flex items-start">
+                  <span className="text-amber-500 mr-2">•</span>
+                  Test opens in fullscreen mode
+                </li>
+                <li className="flex items-start">
+                  <span className="text-amber-500 mr-2">•</span>
+                  Timer starts immediately
+                </li>
+                <li className="flex items-start">
+                  <span className="text-amber-500 mr-2">•</span>
+                  Exiting fullscreen auto-submits
+                </li>
+                <li className="flex items-start">
+                  <span className="text-amber-500 mr-2">•</span>
+                  Navigate questions freely
+                </li>
+                <li className="flex items-start">
+                  <span className="text-amber-500 mr-2">•</span>
+                  Auto-submit when time expires
+                </li>
               </ul>
             </div>
           </div>
         </div>
 
+        {/* Action Buttons */}
         <div className="flex space-x-3">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex-1 btn-secondary flex items-center justify-center space-x-2"
           >
-            Cancel
+            <FiX className="w-5 h-5" />
+            <span>Cancel</span>
           </button>
           <button
             onClick={onStart}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            className="flex-1 btn-primary flex items-center justify-center space-x-2"
           >
-            Start Test
+            <FiPlay className="w-5 h-5" />
+            <span>Start Test</span>
           </button>
         </div>
       </div>
