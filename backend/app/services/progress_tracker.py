@@ -144,41 +144,22 @@ class ProgressTracker:
     async def _send_completion_notification(session_id: str):
         """Send email notification when processing is complete"""
         try:
-            db = get_database()
-            session = await db.study_sessions.find_one({"session_id": session_id})
+            import httpx
             
-            if not session or not session.get("email_notification_enabled"):
-                return
+            # Call the completion email endpoint
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"http://localhost:8000/api/v1/send-completion-email/{session_id}",
+                    timeout=30.0
+                )
                 
-            email = session.get("notification_email")
-            if not email:
-                return
-            
-            # Send completion email
-            subject = "StudyBuddy - Your Study Materials Are Ready!"
-            message = f"""
-            Great news! Your study materials have been successfully generated.
-            
-            Session ID: {session_id}
-            
-            Generated content includes:
-            • Question Bank
-            • Mock Tests  
-            • Mnemonics
-            • Cheat Sheets
-            • Study Notes
-            
-            Visit StudyBuddy to access your materials: [Your App URL]
-            
-            Happy studying!
-            - StudyBuddy Team
-            """
-            
-            await OTPService.send_email_otp(email, "READY", message)
-            logger.info(f"Completion notification sent to {email}")
+                if response.status_code == 200:
+                    logger.info(f"📧 Completion email sent automatically for session {session_id}")
+                else:
+                    logger.error(f"❌ Failed to send completion email: {response.status_code}")
             
         except Exception as e:
-            logger.info(f"Error sending completion notification: {str(e)}")
+            logger.error(f"Error sending completion notification: {str(e)}")
 
     @staticmethod
     async def enable_email_notification(session_id: str, email: str):
