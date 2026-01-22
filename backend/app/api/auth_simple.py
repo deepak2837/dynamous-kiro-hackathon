@@ -102,7 +102,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 async def check_user_exists(request: UserExistsRequest):
     """Check if user exists by mobile number"""
     try:
-        mobile_number = normalize_phone_number(user_request.mobile_number)
+        mobile_number = normalize_phone_number(request.mobile_number)
         db = get_db()
         user = db.users.find_one({"mobile_number": mobile_number})
         
@@ -120,7 +120,7 @@ async def check_user_exists(request: UserExistsRequest):
 async def send_registration_otp(otp_request: SendOTPRequest):
     """Send OTP for registration"""
     try:
-        mobile_number = normalize_phone_number(request.mobile_number)
+        mobile_number = normalize_phone_number(otp_request.mobile_number)
         
         # Check if user already exists
         db = get_db()
@@ -134,16 +134,31 @@ async def send_registration_otp(otp_request: SendOTPRequest):
         # Generate OTP
         otp = OTPService.generate_otp()
         
-        # Send OTP (for demo, we'll just store it)
+        # Send OTP via the specified method
+        otp_sent = await OTPService.send_otp(
+            mobile_number=mobile_number,
+            otp=otp,
+            method=otp_request.otp_method.value,
+            email=otp_request.email,
+            name="User"
+        )
+        
+        if not otp_sent:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send OTP. Please try again."
+            )
+        
+        # Also print for demo purposes
         print(f"📱 OTP for {mobile_number}: {otp}")
         
         # Store OTP
         OTPManager.store_otp(
             mobile_number=mobile_number,
             otp=otp,
-            method=request.otp_method,
+            method=otp_request.otp_method,
             purpose="registration",
-            email=request.email
+            email=otp_request.email
         )
         
         return MessageResponse(message="OTP sent successfully")
@@ -151,7 +166,7 @@ async def send_registration_otp(otp_request: SendOTPRequest):
     except HTTPException:
         raise
     except Exception as e:
-        error_logger.log_error(e, "send_registration_otp", additional_info={"mobile_number": request.mobile_number, "otp_method": request.otp_method})
+        error_logger.log_error(e, "send_registration_otp", additional_info={"mobile_number": otp_request.mobile_number, "otp_method": otp_request.otp_method})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error sending OTP: {str(e)}"
