@@ -12,7 +12,7 @@ from app.services.ai_service import AIService
 from app.services.file_processor import FileProcessor
 from app.services.content_aggregator import ContentAggregator
 from app.services.mock_test_generator import MockTestGenerator
-from app.services.s3_service import s3_service
+from app.services.file_service import file_service
 from app.services.progress_tracker import ProgressTracker
 from app.utils.error_handler import ErrorHandler, RecoveryAction
 from app.logging_config import logger
@@ -405,10 +405,10 @@ class ProcessingService:
                     s3_key = s3_keys[i] if i < len(s3_keys) else None
                     
                     # Download from S3 if needed
-                    if s3_key and s3_service.is_s3_enabled():
+                    if s3_key and file_service.is_s3_enabled():
                         temp_filename = os.path.basename(file_path)
                         temp_path = os.path.join("/tmp", f"processing_{temp_filename}")
-                        local_file_path = await s3_service.download_file_for_processing(s3_key, temp_path)
+                        local_file_path = await file_service.download_file_for_processing(s3_key, temp_path)
                     else:
                         local_file_path = file_path
                     
@@ -431,7 +431,7 @@ class ProcessingService:
                         logger.info(f"Detected document type: {doc_type}")
                     
                     # Clean up temp file
-                    if s3_key and s3_service.is_s3_enabled() and os.path.exists(local_file_path):
+                    if s3_key and file_service.is_s3_enabled() and os.path.exists(local_file_path):
                         os.remove(local_file_path)
                         
                 except Exception as e:
@@ -834,7 +834,7 @@ class ProcessingService:
                     if s3_keys and i < len(s3_keys):
                         # Download from S3 first
                         local_path = f"/tmp/{s3_keys[i].split('/')[-1]}"
-                        await s3_service.download_file_for_processing(s3_keys[i], local_path)
+                        await file_service.download_file_for_processing(s3_keys[i], local_path)
                         file_path = local_path
                     
                     # Count pages based on file type

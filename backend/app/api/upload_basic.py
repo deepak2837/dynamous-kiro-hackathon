@@ -5,7 +5,7 @@ import uuid
 import os
 import tempfile
 from datetime import datetime
-from app.services.s3_service import s3_service
+from app.services.file_service import file_service
 from app.api.auth_simple import get_current_user
 from app.auth_models_simple import UserResponse
 from app.services.ai_service import AIService
@@ -367,7 +367,7 @@ async def upload_files(
                 temp_file_path = temp_file.name
             
             # Upload to S3 or keep local
-            file_url, s3_key = await s3_service.upload_file(
+            file_url, s3_key = await file_service.upload_file(
                 temp_file_path, 
                 session_id, 
                 file.filename
