@@ -11,7 +11,7 @@ from app.database import get_database
 from app.services.processing import ProcessingService
 from app.services.upload_restrictions import UploadRestrictionService
 from app.services.progress_tracker import ProgressTracker
-from app.services.s3_service import s3_service
+from app.services.file_service import file_service
 from app.middleware.rate_limit import upload_rate_limit, api_rate_limit
 from fastapi import Request
 
@@ -123,9 +123,9 @@ async def upload_files(
             shutil.copyfileobj(file.file, buffer)
         
         # Upload to S3 or keep local based on storage mode
-        file_url, s3_key = await s3_service.upload_file(local_file_path, session_id, file.filename)
+        file_url, s3_key = await file_service.upload_file(local_file_path, session_id, file.filename)
         
-        uploaded_files.append(local_file_path if not s3_service.is_s3_enabled() else file_url)
+        uploaded_files.append(local_file_path if not file_service.is_s3_enabled() else file_url)
         file_urls.append(file_url)
         s3_keys.append(s3_key)
     
@@ -260,8 +260,8 @@ async def get_file_limits():
 async def get_storage_info(request: Request):
     """Get current storage configuration"""
     return {
-        "storage_mode": s3_service.storage_mode,
-        "s3_enabled": s3_service.is_s3_enabled(),
-        "bucket_name": s3_service.bucket_name if s3_service.is_s3_enabled() else None,
-        "region": s3_service.aws_region if s3_service.is_s3_enabled() else None
+        "storage_mode": file_service.storage_mode,
+        "s3_enabled": file_service.is_s3_enabled(),
+        "bucket_name": file_service.bucket_name if file_service.is_s3_enabled() else None,
+        "region": file_service.aws_region if file_service.is_s3_enabled() else None
     }

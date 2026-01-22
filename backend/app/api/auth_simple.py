@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import pymongo
 from bson import ObjectId
 from app.auth_models_simple import *
-from app.services.otp_service import OTPService, OTPManager
+from app.services.otp_service import OTPService
 from app.config import settings
 from app.utils.error_logger import error_logger
 

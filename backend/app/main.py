@@ -87,8 +87,6 @@ from app.api.history import router as history_router
 app.include_router(history_router)
 
 # Add test endpoint for AI_ONLY processing
-from app.api.test_ai_only import router as test_ai_only_router
-app.include_router(test_ai_only_router, prefix="/api/v1")
 
 # Add real content routes
 from app.api.v1.endpoints.questions import router as questions_router
@@ -99,8 +97,6 @@ from app.api.questions_basic import router as questions_basic_router
 app.include_router(questions_basic_router, prefix="/api/v1")
 
 # Add S3 test routes
-from app.api.s3_test import router as s3_test_router
-app.include_router(s3_test_router, prefix="/api/v1/s3-test")
 
 @app.get("/")
 async def root():
