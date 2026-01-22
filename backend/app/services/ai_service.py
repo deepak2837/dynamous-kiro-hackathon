@@ -1002,7 +1002,7 @@ Format as JSON array:
         
         return notes
 
-    def extract_json_from_response(self, response_text: str) -> Optional[Dict | List]:
+    def extract_json_from_response(self, response_text: str) -> Optional[Union[Dict, List]]:
         """Extract JSON from AI response with multiple fallback methods."""
         operation = "EXTRACT_JSON"
         
