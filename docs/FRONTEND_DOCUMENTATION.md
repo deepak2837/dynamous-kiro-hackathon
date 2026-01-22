@@ -78,7 +78,7 @@ Reusable authentication form component supporting both login and registration.
 - `mode`: 'login' | 'register'
 - `onSuccess`: Callback function on successful authentication
 
-### 2. File Upload System
+### File Upload System
 
 #### FileUpload (`src/components/FileUpload.tsx`)
 Advanced file upload component with drag-and-drop support.
@@ -87,14 +87,90 @@ Advanced file upload component with drag-and-drop support.
 - Drag and drop interface
 - Multiple file selection
 - File type validation (PDF, JPG, PNG, PPTX)
-- File size validation (50MB limit)
+- File size validation (configurable, default: 50MB)
 - Upload progress tracking
 - Preview of selected files
+- Error handling with user-friendly messages
+
+**Configuration Options:**
+```typescript
+interface FileUploadConfig {
+  maxFileSize: number;        // Maximum file size in bytes
+  maxFiles: number;           // Maximum number of files
+  allowedTypes: string[];     // Allowed file extensions
+  enableDragDrop: boolean;    // Enable drag and drop
+  showPreview: boolean;       // Show file preview
+  enableProgress: boolean;    // Show upload progress
+}
+```
 
 **Supported File Types:**
-- PDF documents
-- Images (JPG, PNG)
-- PowerPoint presentations (PPTX)
+- PDF documents (`.pdf`)
+- Images (`.jpg`, `.jpeg`, `.png`)
+- PowerPoint presentations (`.pptx`)
+
+**File Size Limits:**
+- Default: 50MB per file
+- Configurable via environment variables
+- Real-time validation with error messages
+
+**Upload Features:**
+- Batch file upload
+- Progress tracking per file
+- Error recovery and retry
+- Automatic file type detection
+- Email notification opt-in checkbox
+
+**Email Notification Integration:**
+```typescript
+interface UploadOptions {
+  files: File[];
+  sessionName?: string;
+  notifyByEmail?: boolean;
+  userEmail?: string;
+}
+
+const FileUpload: React.FC = () => {
+  const [notifyByEmail, setNotifyByEmail] = useState(false);
+  const { user } = useAuth();
+  
+  const handleUpload = async () => {
+    const options: UploadOptions = {
+      files: selectedFiles,
+      sessionName: sessionName,
+      notifyByEmail: notifyByEmail,
+      userEmail: user?.email
+    };
+    
+    await uploadFiles(options);
+    
+    if (notifyByEmail) {
+      toast.success("You'll receive an email when processing is complete!");
+    }
+  };
+  
+  return (
+    <div>
+      {/* File upload interface */}
+      
+      <div className="notification-option">
+        <input
+          type="checkbox"
+          id="email-notify"
+          checked={notifyByEmail}
+          onChange={(e) => setNotifyByEmail(e.target.checked)}
+        />
+        <label htmlFor="email-notify">
+          📧 Email me when processing is complete
+        </label>
+        <p className="text-sm text-gray-600">
+          Get notified when your study materials are ready (processing may take 2-5 minutes)
+        </p>
+      </div>
+    </div>
+  );
+};
+```
 
 ### 3. Processing System
 
@@ -106,6 +182,52 @@ Real-time processing status display with progress tracking.
 - Current processing step display
 - Estimated completion time
 - Error handling and retry options
+- Email notification status display
+
+**Processing Steps:**
+1. File upload validation
+2. Text extraction
+3. AI content generation
+4. Results compilation
+5. Email notification (if opted-in)
+
+**Email Notification Integration:**
+```typescript
+const ProcessingStatus: React.FC<{ sessionId: string; emailNotification: boolean }> = ({ sessionId, emailNotification }) => {
+  const [status, setStatus] = useState<ProcessingStatus>();
+  
+  useEffect(() => {
+    const pollStatus = async () => {
+      const response = await getProcessingStatus(sessionId);
+      setStatus(response);
+      
+      if (response.status === 'completed' && emailNotification) {
+        toast.success("✅ Processing complete! Check your email for notification.");
+      }
+    };
+    
+    const interval = setInterval(pollStatus, 2000);
+    return () => clearInterval(interval);
+  }, [sessionId, emailNotification]);
+  
+  return (
+    <div className="processing-status">
+      <div className="progress-bar">
+        <div style={{ width: `${status?.progress}%` }} />
+      </div>
+      
+      <p>{status?.current_step}</p>
+      
+      {emailNotification && (
+        <div className="email-notification-status">
+          <span>📧 Email notification enabled</span>
+          <p className="text-sm">You'll be notified when processing is complete</p>
+        </div>
+      )}
+    </div>
+  );
+};
+```
 
 **Processing Steps:**
 1. File upload validation
@@ -147,20 +269,57 @@ Individual question display component with interactive features.
 Complete mock test taking interface.
 
 **Features:**
-- Timer functionality
-- Question navigation
-- Answer tracking
+- Timer functionality with countdown display
+- Question navigation with progress indicator
+- Answer selection and tracking
+- Mark questions for review
 - Auto-submit on time completion
-- Progress indicators
+- Pause and resume capability
+- Progress indicators and question status
+
+**Key Methods:**
+```typescript
+interface MockTestInterface {
+  startTest: (testId: string) => void;
+  answerQuestion: (questionId: string, answer: string) => void;
+  markForReview: (questionId: string) => void;
+  navigateToQuestion: (index: number) => void;
+  submitTest: () => Promise<TestResult>;
+  pauseTest: () => void;
+  resumeTest: () => void;
+}
+```
 
 #### MockTestResults (`src/components/MockTestResults.tsx`)
 Detailed test results and analytics.
 
 **Features:**
-- Score calculation
-- Question-wise analysis
-- Performance metrics
-- Retry options
+- Score calculation and percentage display
+- Question-wise analysis with explanations
+- Performance metrics and time tracking
+- Subject-wise breakdown
+- Retry options and improvement suggestions
+- Detailed analytics charts
+
+**Analytics Displayed:**
+- Overall score and percentage
+- Time per question analysis
+- Subject-wise performance
+- Difficulty level breakdown
+- Improvement areas identification
+
+#### Test Configuration Options
+```typescript
+interface TestConfig {
+  duration: number;           // Test duration in minutes
+  questionsCount: number;     // Number of questions (default: 25)
+  allowReview: boolean;       // Allow marking for review
+  showTimer: boolean;         // Display countdown timer
+  autoSubmit: boolean;        // Auto-submit on time completion
+  allowRetry: boolean;        // Allow retaking the test
+  shuffleQuestions: boolean;  // Randomize question order
+}
+```
 
 ### 6. Session Management
 
@@ -297,22 +456,52 @@ React error boundaries for graceful error handling:
 
 ## Security Measures
 
-### Authentication Security
-- JWT token validation
-- Secure token storage
-- Automatic token refresh
-- Session timeout handling
+### Rate Limiting
+Client-side rate limiting awareness and handling.
 
-### Input Validation
-- Client-side form validation
-- File type and size validation
-- XSS prevention
-- CSRF protection
+**Features:**
+- Request throttling detection
+- User-friendly rate limit messages
+- Automatic retry with backoff
+- Progress indicators during rate limits
+
+**Rate Limit Handling:**
+```typescript
+class RateLimitHandler {
+  private retryAfter: number = 0;
+  
+  async handleRateLimit(error: AxiosError): Promise<void> {
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'];
+      this.retryAfter = parseInt(retryAfter) * 1000;
+      
+      // Show user-friendly message
+      toast.warning(`Rate limit exceeded. Please wait ${retryAfter} seconds.`);
+      
+      // Wait and retry
+      await this.waitAndRetry();
+    }
+  }
+  
+  private async waitAndRetry(): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(resolve, this.retryAfter);
+    });
+  }
+}
+```
+
+### File Upload Security
+- Client-side file validation
+- File type verification
+- Size limit enforcement
+- Malicious file detection
 
 ### API Security
-- Request authentication headers
-- Rate limiting awareness
+- JWT token management
+- Automatic token refresh
 - Secure API endpoints
+- Request authentication headers
 
 ## Testing Strategy
 
