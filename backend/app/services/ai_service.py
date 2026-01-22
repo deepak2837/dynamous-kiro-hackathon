@@ -383,6 +383,129 @@ Return as a simple list, one concept per line."""
             self._log_ai_response(operation, str(e), False, {"error": str(e)})
             logger.error(f"Failed to analyze images: {str(e)}")
             return ""
+    # Cache for uploaded files to avoid re-uploading
+    _file_cache: Dict[str, Any] = {}
+
+    async def analyze_file_with_prompt(self, file_path: str, prompt: str) -> str:
+        """
+        Analyze a file (PDF, image, etc.) by uploading it directly to Gemini API.
+        
+        This is the key method for file-based content generation. It sends the actual
+        file to Gemini rather than extracting text first, allowing the AI to analyze
+        the complete document including layout, diagrams, and context.
+        
+        Uses caching to avoid re-uploading the same file for multiple prompts.
+        
+        Args:
+            file_path: Path to the file to analyze
+            prompt: The instruction prompt for generating content
+            
+        Returns:
+            The AI-generated response text
+        """
+        operation = "ANALYZE_FILE_WITH_PROMPT"
+        
+        self._log_ai_request(operation, prompt[:500], {
+            "file_path": file_path,
+            "prompt_length": len(prompt)
+        })
+        
+        try:
+            import os
+            import mimetypes
+            
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"File not found: {file_path}")
+            
+            # Determine MIME type
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if mime_type is None:
+                # Default based on extension
+                ext = os.path.splitext(file_path)[1].lower()
+                mime_types_map = {
+                    '.pdf': 'application/pdf',
+                    '.jpg': 'image/jpeg',
+                    '.jpeg': 'image/jpeg',
+                    '.png': 'image/png',
+                    '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                    '.ppt': 'application/vnd.ms-powerpoint'
+                }
+                mime_type = mime_types_map.get(ext, 'application/octet-stream')
+            
+            file_size = os.path.getsize(file_path)
+            logger.info(f"Analyzing file: {file_path}, MIME: {mime_type}, Size: {file_size} bytes")
+            
+            # Check if we already have this file uploaded (for reuse across multiple prompts)
+            cache_key = f"{file_path}:{os.path.getmtime(file_path)}"
+            
+            # For large files (> 20MB), use the File API with caching
+            # For smaller files, always use inline data (more reliable)
+            if file_size > 20 * 1024 * 1024:  # 20MB threshold
+                if cache_key in self._file_cache:
+                    logger.info(f"Using cached file upload: {self._file_cache[cache_key].name}")
+                    uploaded_file = self._file_cache[cache_key]
+                else:
+                    logger.info(f"Using File API for large file upload")
+                    try:
+                        # Upload file to Gemini File API
+                        uploaded_file = genai.upload_file(file_path, mime_type=mime_type)
+                        logger.info(f"File uploaded successfully: {uploaded_file.name}")
+                        # Cache the uploaded file
+                        self._file_cache[cache_key] = uploaded_file
+                    except Exception as upload_error:
+                        logger.warning(f"File API upload failed, falling back to inline: {upload_error}")
+                        # Fall back to inline for this file
+                        with open(file_path, 'rb') as f:
+                            file_data = f.read()
+                        file_content = {
+                            "mime_type": mime_type,
+                            "data": base64.b64encode(file_data).decode('utf-8')
+                        }
+                        response = self.model.generate_content([prompt, file_content])
+                        if response and response.text:
+                            return response.text
+                        return ""
+                
+                # Generate content with uploaded file
+                response = self.model.generate_content([prompt, uploaded_file])
+            else:
+                # For smaller files, use inline data (more reliable, no caching needed)
+                logger.info(f"Using inline data for file analysis")
+                with open(file_path, 'rb') as f:
+                    file_data = f.read()
+                
+                file_content = {
+                    "mime_type": mime_type,
+                    "data": base64.b64encode(file_data).decode('utf-8')
+                }
+                
+                response = self.model.generate_content([prompt, file_content])
+            
+            if response and response.text:
+                response_text = response.text
+                self._log_ai_response(operation, response_text, True, {
+                    "file_path": file_path,
+                    "response_length": len(response_text)
+                })
+                return response_text
+            else:
+                logger.warning(f"Empty response from AI for file: {file_path}")
+                return ""
+                
+        except Exception as e:
+            self._log_ai_response(operation, str(e), False, {"error": str(e), "file_path": file_path})
+            logger.error(f"❌ File analysis failed: {str(e)}")
+            raise
+
+    def cleanup_file_cache(self):
+        """Clean up all cached uploaded files."""
+        for cache_key, uploaded_file in self._file_cache.items():
+            try:
+                genai.delete_file(uploaded_file.name)
+                logger.info(f"Cleaned up cached file: {uploaded_file.name}")
+            except Exception as e:
+                logger.warning(f"Failed to cleanup cached file: {e}")
+        self._file_cache.clear()
 
     async def generate_content_from_text(self, text: str) -> Dict[str, Any]:
         """Generate all content types from extracted text"""

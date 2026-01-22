@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react';
 import { Question, MockTest, Mnemonic, CheatSheet, Note, DifficultyLevel } from '@/types/api';
 import { StudyBuddyAPI } from '@/lib/studybuddy-api';
+import InteractiveQuestion from './InteractiveQuestion';
+import MockTestDialog from './MockTestDialog';
+import MockTestInterface from './MockTestInterface';
+import MockTestResults from './MockTestResults';
 
 interface ResultsViewerProps {
   sessionId: string;
@@ -19,6 +23,17 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Mock Test State
+  const [selectedTest, setSelectedTest] = useState<MockTest | null>(null);
+  const [showTestDialog, setShowTestDialog] = useState(false);
+  const [testMode, setTestMode] = useState(false);
+  const [testQuestions, setTestQuestions] = useState<Question[]>([]);
+  const [testResults, setTestResults] = useState<{
+    results: Array<{ questionId: string; userAnswer: string; correctAnswer: string; isCorrect: boolean; question: Question }>;
+    timeSpent: number;
+    totalTime: number;
+  } | null>(null);
+
   useEffect(() => {
     loadContent(activeTab);
   }, [activeTab, sessionId]);
@@ -30,8 +45,8 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
         case 'questions':
           const questionsResponse = await StudyBuddyAPI.getSessionQuestions(sessionId);
           // API returns array directly or object with questions property
-          const questionsData = Array.isArray(questionsResponse) 
-            ? questionsResponse 
+          const questionsData = Array.isArray(questionsResponse)
+            ? questionsResponse
             : questionsResponse?.questions || questionsResponse || [];
           setQuestions(questionsData);
           break;
@@ -102,6 +117,90 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
     }
   };
 
+  // Mock Test Handlers
+  const handleStartTest = async (test: MockTest) => {
+    setSelectedTest(test);
+    setShowTestDialog(true);
+  };
+
+  const handleConfirmStartTest = async () => {
+    if (!selectedTest) return;
+
+    setShowTestDialog(false);
+    setLoading(true);
+
+    try {
+      // Fetch all questions for this test
+      const questionsData = await StudyBuddyAPI.getSessionQuestions(sessionId, 0, 100);
+      const questionsArray = Array.isArray(questionsData) ? questionsData : (questionsData as any)?.questions || [];
+
+      // Filter to get only questions in this test (if test has question IDs)
+      let testQs = questionsArray;
+      if (selectedTest.questions && selectedTest.questions.length > 0) {
+        // Filter by question IDs if available
+        const testQuestionIds = new Set(selectedTest.questions);
+        testQs = questionsArray.filter((q: Question) =>
+          testQuestionIds.has((q as any).question_id || (q as any).id)
+        );
+        // If filter resulted in empty, use all questions
+        if (testQs.length === 0) testQs = questionsArray;
+      }
+
+      setTestQuestions(testQs);
+      setTestMode(true);
+    } catch (error) {
+      console.error('Failed to load test questions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestSubmit = (answers: Record<string, string>, timeSpent: number) => {
+    if (!selectedTest) return;
+
+    // Calculate results
+    const results = testQuestions.map((q) => {
+      const questionId = (q as any).question_id || (q as any).id;
+      const userAnswer = answers[questionId] || '';
+      const correctAnswer = String((q as any).correct_answer || 'A');
+      const isCorrect = userAnswer === correctAnswer;
+
+      return {
+        questionId,
+        userAnswer,
+        correctAnswer,
+        isCorrect,
+        question: q
+      };
+    });
+
+    setTestResults({
+      results,
+      timeSpent,
+      totalTime: selectedTest.duration_minutes * 60
+    });
+    setTestMode(false);
+  };
+
+  const handleTestExit = () => {
+    setTestMode(false);
+    setSelectedTest(null);
+    setTestQuestions([]);
+    setTestResults(null);
+  };
+
+  const handleRetakeTest = () => {
+    if (selectedTest) {
+      setTestResults(null);
+      handleConfirmStartTest();
+    }
+  };
+
+  const handleCloseResults = () => {
+    setTestResults(null);
+    setSelectedTest(null);
+  };
+
   const tabs = [
     { id: 'questions', label: 'Questions', icon: '❓', count: questions?.length || 0 },
     { id: 'mock-tests', label: 'Mock Tests', icon: '📊', count: mockTests?.length || 0 },
@@ -119,11 +218,10 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as ContentType)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === tab.id
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
             >
               <span className="flex items-center space-x-2">
                 <span>{tab.icon}</span>
@@ -156,80 +254,13 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                     No questions generated yet.
                   </div>
                 ) : (
-                  questions.map((question, index) => {
-                    // Handle both API formats: question_text or question
-                    const questionText = (question as any).question_text || (question as any).question || '';
-                    const questionId = (question as any).question_id || (question as any).id || index;
-                    const difficulty = question.difficulty || 'medium';
-                    const topic = question.topic || '';
-                    const explanation = question.explanation || '';
-                    
-                    // Handle options - can be array or object
-                    const options = question.options;
-                    const correctAnswer = (question as any).correct_answer || '';
-                    
-                    // Convert options object to array if needed
-                    const optionsArray = Array.isArray(options) 
-                      ? options 
-                      : Object.entries(options || {}).map(([key, value]) => ({
-                          option_id: key,
-                          text: value as string,
-                          is_correct: key === correctAnswer
-                        }));
-
-                    return (
-                      <div key={questionId} className="card">
-                        <div className="flex justify-between items-start mb-3">
-                          <h3 className="font-medium text-gray-900">
-                            Q{index + 1}. {questionText}
-                          </h3>
-                          <div className="flex space-x-2">
-                            <span className={getDifficultyClass(difficulty as DifficultyLevel)}>
-                              {difficulty}
-                            </span>
-                            {topic && (
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                                {topic}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="space-y-2 mb-4">
-                          {optionsArray.map((option: any, optIndex: number) => {
-                            const optionText = option.text || option;
-                            const optionKey = option.option_id || String.fromCharCode(65 + optIndex);
-                            const isCorrect = option.is_correct || optionKey === correctAnswer;
-                            
-                            return (
-                              <div
-                                key={optIndex}
-                                className={`p-2 rounded ${
-                                  isCorrect
-                                    ? 'bg-green-50 border border-green-200'
-                                    : 'bg-gray-50'
-                                }`}
-                              >
-                                <span className="font-medium">
-                                  {optionKey}.
-                                </span>{' '}
-                                {optionText}
-                                {isCorrect && (
-                                  <span className="text-green-600 ml-2">✓</span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                        {explanation && (
-                          <div className="bg-blue-50 p-3 rounded">
-                            <p className="text-sm text-blue-800">
-                              <strong>Explanation:</strong> {explanation}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
+                  questions.map((question, index) => (
+                    <InteractiveQuestion
+                      key={(question as any).question_id || (question as any).id || index}
+                      question={question}
+                      index={index}
+                    />
+                  ))
                 )}
               </div>
             )}
@@ -254,7 +285,10 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                             <span>⏱️ {test.duration_minutes} minutes</span>
                           </div>
                         </div>
-                        <button className="btn-primary">
+                        <button
+                          className="btn-primary"
+                          onClick={() => handleStartTest(test)}
+                        >
                           Start Test
                         </button>
                       </div>
@@ -314,7 +348,7 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">
                         {sheet.title}
                       </h3>
-                      
+
                       <div className="grid md:grid-cols-2 gap-6">
                         <div>
                           <h4 className="font-medium text-gray-900 mb-2">Key Points</h4>
@@ -327,7 +361,7 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                             ))}
                           </ul>
                         </div>
-                        
+
                         <div>
                           <h4 className="font-medium text-gray-900 mb-2">High-Yield Facts</h4>
                           <ul className="space-y-1">
@@ -373,7 +407,7 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">
                         {note.title}
                       </h3>
-                      
+
                       <div className="prose max-w-none mb-4">
                         <div className="text-gray-700 whitespace-pre-wrap">
                           {note.content}
@@ -401,6 +435,40 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
           </div>
         )}
       </div>
+
+      {/* Mock Test Dialog */}
+      {showTestDialog && selectedTest && (
+        <MockTestDialog
+          testName={selectedTest.test_name}
+          totalQuestions={selectedTest.total_questions}
+          duration={selectedTest.duration_minutes}
+          onStart={handleConfirmStartTest}
+          onCancel={() => setShowTestDialog(false)}
+        />
+      )}
+
+      {/* Mock Test Interface (Fullscreen) */}
+      {testMode && selectedTest && testQuestions.length > 0 && (
+        <MockTestInterface
+          questions={testQuestions}
+          testName={selectedTest.test_name}
+          duration={selectedTest.duration_minutes}
+          onSubmit={handleTestSubmit}
+          onExit={handleTestExit}
+        />
+      )}
+
+      {/* Mock Test Results */}
+      {testResults && selectedTest && (
+        <MockTestResults
+          testName={selectedTest.test_name}
+          results={testResults.results}
+          timeSpent={testResults.timeSpent}
+          totalTime={testResults.totalTime}
+          onClose={handleCloseResults}
+          onRetakeTest={handleRetakeTest}
+        />
+      )}
     </div>
   );
 }

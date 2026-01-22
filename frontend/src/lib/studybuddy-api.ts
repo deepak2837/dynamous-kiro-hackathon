@@ -28,12 +28,12 @@ export class StudyBuddyAPI {
     userId: string
   ): Promise<UploadResponse> {
     const formData = new FormData();
-    
+
     files.forEach(file => {
       formData.append('files', file);
     });
     formData.append('processing_mode', processingMode);
-    // user_id will be obtained from JWT token on backend
+    formData.append('user_id', userId);  // Send user_id to backend
 
     const response = await apiClient.post('/upload/', formData, {
       headers: {
@@ -41,7 +41,7 @@ export class StudyBuddyAPI {
       },
       timeout: 60000, // 60 seconds for file upload processing
     });
-    
+
     return response.data;
   }
 

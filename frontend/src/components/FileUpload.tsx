@@ -20,7 +20,7 @@ interface FileLimits {
 export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploadProps) {
   const { user } = useAuth();
   const [files, setFiles] = useState<File[]>([]);
-  const [processingMode, setProcessingMode] = useState<ProcessingMode>(ProcessingMode.OCR_AI);
+  const [processingMode, setProcessingMode] = useState<ProcessingMode>(ProcessingMode.AI_ONLY);
   const [isUploading, setIsUploading] = useState(false);
   const [fileLimits, setFileLimits] = useState<FileLimits | null>(null);
   const [uploadRestriction, setUploadRestriction] = useState<{
@@ -442,22 +442,6 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
         <div className="space-y-3">
           <h3 className="font-medium text-gray-900">Processing Mode</h3>
           <div className="space-y-2">
-            <label className="flex items-center space-x-3">
-              <input
-                type="radio"
-                name="processingMode"
-                value={ProcessingMode.OCR_AI}
-                checked={processingMode === ProcessingMode.OCR_AI}
-                onChange={(e) => setProcessingMode(e.target.value as ProcessingMode)}
-                className="text-blue-600"
-                disabled={!uploadRestriction.allowed}
-              />
-              <div>
-                <span className="font-medium">OCR + AI Mode</span>
-                <p className="text-sm text-gray-500">Enhanced extraction with AI processing for scanned documents</p>
-              </div>
-            </label>
-
             <label className="flex items-center space-x-3">
               <input
                 type="radio"

@@ -36,6 +36,7 @@ async def upload_files(
 ):
     """Upload files and start processing"""
     
+    # 🔴 SET BREAKPOINT ON THIS LINE - Request received from frontend
     # Check upload restrictions
     allowed, restriction_message, remaining_seconds = UploadRestrictionService.check_upload_allowed(user_id)
     if not allowed:
@@ -128,8 +129,16 @@ async def upload_files(
         file_urls.append(file_url)
         s3_keys.append(s3_key)
     
-    # Generate session name
-    session_name = f"Study Session {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    # Generate session name from first file's name (without extension)
+    first_filename = files[0].filename if files else "Uploaded File"
+    # Remove extension and clean up the name
+    topic_name = os.path.splitext(first_filename)[0]
+    # Replace underscores and hyphens with spaces for readability
+    topic_name = topic_name.replace("_", " ").replace("-", " ")
+    # Truncate if too long
+    if len(topic_name) > 50:
+        topic_name = topic_name[:50] + "..."
+    session_name = f"File: {topic_name}"
     
     # Create session record
     session = StudySession(
@@ -144,7 +153,8 @@ async def upload_files(
         last_upload_time=datetime.utcnow()
     )
     
-    # Save to database
+    # Save to database (use studybuddy database)
+    db = get_database()
     await db.study_sessions.insert_one(session.dict())
     
     # Record upload time for restrictions

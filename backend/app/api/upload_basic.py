@@ -308,6 +308,17 @@ async def upload_files(
         session_id = str(uuid.uuid4())
         uploaded_files = []
         
+        # Extract topic name from first file's name (without extension)
+        first_filename = files[0].filename if files else "Uploaded File"
+        # Remove extension and clean up the name
+        topic_name = os.path.splitext(first_filename)[0]
+        # Replace underscores and hyphens with spaces for readability
+        topic_name = topic_name.replace("_", " ").replace("-", " ")
+        # Truncate if too long
+        if len(topic_name) > 50:
+            topic_name = topic_name[:50] + "..."
+        session_name = f"File: {topic_name}"
+        
         # Initialize session storage (both in-memory and database)
         session_data = {
             "session_id": session_id,
@@ -315,7 +326,9 @@ async def upload_files(
             "status": "pending",
             "created_at": datetime.utcnow().isoformat(),
             "processing_mode": processing_mode,
-            "files_uploaded": []
+            "files_uploaded": [],
+            "session_name": session_name,
+            "topic": topic_name
         }
         
         session_storage[session_id] = session_data
@@ -326,7 +339,7 @@ async def upload_files(
             db.study_sessions.insert_one({
                 "session_id": session_id,
                 "user_id": user_id,
-                "session_name": f"Session {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
+                "session_name": session_name,
                 "status": "pending",
                 "created_at": datetime.utcnow(),
                 "processing_mode": processing_mode,

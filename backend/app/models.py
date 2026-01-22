@@ -4,7 +4,6 @@ from datetime import datetime
 from enum import Enum
 
 class ProcessingMode(str, Enum):
-    OCR_AI = "ocr_ai"
     AI_ONLY = "ai_only"
 
 class InputType(str, Enum):
@@ -143,7 +142,7 @@ class Note(BaseModel):
 
 # Request/Response Models
 class UploadRequest(BaseModel):
-    processing_mode: ProcessingMode = ProcessingMode.OCR_AI
+    processing_mode: ProcessingMode = ProcessingMode.AI_ONLY
 
 class UploadResponse(BaseModel):
     session_id: str

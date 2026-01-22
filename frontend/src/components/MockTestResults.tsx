@@ -18,13 +18,13 @@ interface MockTestResultsProps {
   onRetakeTest: () => void;
 }
 
-export default function MockTestResults({ 
-  testName, 
-  results, 
-  timeSpent, 
-  totalTime, 
-  onClose, 
-  onRetakeTest 
+export default function MockTestResults({
+  testName,
+  results,
+  timeSpent,
+  totalTime,
+  onClose,
+  onRetakeTest
 }: MockTestResultsProps) {
   const correctAnswers = results.filter(r => r.isCorrect).length;
   const totalQuestions = results.length;
@@ -118,21 +118,36 @@ export default function MockTestResults({
               </h3>
               <div className="space-y-4">
                 {wrongAnswers.map((result, index) => {
-                  // Handle both string array and object array formats
-                  const options = result.question.options || [];
-                  const isStringArray = options.length > 0 && typeof options[0] === 'string';
-                  
-                  let correctOption, userOption;
-                  if (isStringArray) {
-                    const correctIndex = result.question.correct_answer || 0;
-                    correctOption = { text: options[correctIndex] };
-                    const userIndex = parseInt(result.userAnswer);
-                    userOption = !isNaN(userIndex) && options[userIndex] ? { text: options[userIndex] } : null;
-                  } else {
-                    correctOption = options.find(opt => opt.is_correct);
-                    userOption = options.find(opt => opt.option_id === result.userAnswer);
+                  // Handle options - can be array or dict
+                  const rawOptions = result.question.options || {};
+
+                  let correctOption: { text: string } | null = null;
+                  let userOption: { text: string } | null = null;
+                  const correctAnswer = String(result.question.correct_answer || 'A');
+                  const userAnswer = result.userAnswer;
+
+                  if (Array.isArray(rawOptions)) {
+                    // Options is an array of strings or objects
+                    if (rawOptions.length > 0 && typeof rawOptions[0] === 'string') {
+                      // Array of strings
+                      const correctIndex = parseInt(correctAnswer) || 0;
+                      correctOption = { text: (rawOptions as string[])[correctIndex] || '' };
+                      const userIndex = parseInt(userAnswer);
+                      userOption = !isNaN(userIndex) && rawOptions[userIndex] ? { text: (rawOptions as string[])[userIndex] } : null;
+                    } else {
+                      // Array of objects
+                      const optArr = rawOptions as { option_id?: string; is_correct?: boolean; text?: string }[];
+                      const correct = optArr.find(opt => opt.is_correct || opt.option_id === correctAnswer);
+                      correctOption = correct ? { text: correct.text || '' } : null;
+                      const user = optArr.find(opt => opt.option_id === userAnswer);
+                      userOption = user ? { text: user.text || '' } : null;
+                    }
+                  } else if (typeof rawOptions === 'object') {
+                    // Options is a dict like {A: "text", B: "text"}
+                    correctOption = { text: (rawOptions as Record<string, string>)[correctAnswer] || '' };
+                    userOption = userAnswer ? { text: (rawOptions as Record<string, string>)[userAnswer] || '' } : null;
                   }
-                  
+
                   return (
                     <div key={result.questionId} className="border border-red-200 rounded-lg p-4 bg-red-50">
                       <div className="mb-3">
@@ -141,7 +156,7 @@ export default function MockTestResults({
                         </span>
                         <p className="text-gray-800 mt-1">{result.question.question_text}</p>
                       </div>
-                      
+
                       <div className="space-y-2 mb-3">
                         <div className="flex items-start">
                           <span className="text-sm font-semibold text-red-600 mr-2">Your Answer:</span>
@@ -156,7 +171,7 @@ export default function MockTestResults({
                           </span>
                         </div>
                       </div>
-                      
+
                       {result.question.explanation && (
                         <div className="bg-white border border-gray-200 rounded p-3">
                           <span className="text-sm font-semibold text-gray-700">Explanation:</span>
