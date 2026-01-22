@@ -148,3 +148,4 @@ config/secrets.json
 *_INTEGRATION_SUMMARY.md
 *_API_KEYS.md
 *_CREDENTIALS.md
+.backup/
