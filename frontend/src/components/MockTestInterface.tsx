@@ -161,7 +161,7 @@ export default function MockTestInterface({
 
                 if (Array.isArray(rawOptions)) {
                   // Options is already an array (of strings or objects)
-                  optionsArray = rawOptions.map((opt, idx) => ({
+                  optionsArray = (rawOptions as any[]).map((opt, idx) => ({
                     key: typeof opt === 'string' ? String.fromCharCode(65 + idx) : (opt.option_id || String.fromCharCode(65 + idx)),
                     text: typeof opt === 'string' ? opt : (opt.text || '')
                   }));
@@ -228,10 +228,10 @@ export default function MockTestInterface({
                 key={index}
                 onClick={() => setCurrentQuestion(index)}
                 className={`w-8 h-8 rounded text-sm ${index === currentQuestion
-                    ? 'bg-blue-500 text-white'
-                    : answers[qId]
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-600'
+                  ? 'bg-blue-500 text-white'
+                  : answers[qId]
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-200 text-gray-600'
                   }`}
               >
                 {index + 1}

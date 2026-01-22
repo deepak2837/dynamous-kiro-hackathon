@@ -31,6 +31,8 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
   const [countdown, setCountdown] = useState<number>(0);
   const [inputMode, setInputMode] = useState<'file' | 'topic'>('file');
   const [topicInput, setTopicInput] = useState<string>('');
+  const [notifyByEmail, setNotifyByEmail] = useState<boolean>(false);
+  const [notificationEmail, setNotificationEmail] = useState<string>('');
 
   // Get user ID from authenticated user
   const userId = user?.id || '';
@@ -236,10 +238,26 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
     setIsUploading(true);
     try {
       const response = await StudyBuddyAPI.uploadFiles(files, processingMode, userId);
+
+      // Enable email notification if requested
+      if (notifyByEmail && notificationEmail.trim()) {
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/upload/enable-notification/${response.session_id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: notificationEmail.trim() })
+          });
+        } catch (e) {
+          console.error('Failed to enable email notification:', e);
+        }
+      }
+
       onUploadSuccess(response.session_id);
 
       // Reset form
       setFiles([]);
+      setNotifyByEmail(false);
+      setNotificationEmail('');
 
       // Recheck restrictions after successful upload
       setTimeout(checkUploadRestrictions, 1000);
@@ -279,8 +297,24 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
       }
 
       const data = await response.json();
+
+      // Enable email notification if requested
+      if (notifyByEmail && notificationEmail.trim()) {
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/upload/enable-notification/${data.session_id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: notificationEmail.trim() })
+          });
+        } catch (e) {
+          console.error('Failed to enable email notification:', e);
+        }
+      }
+
       onUploadSuccess(data.session_id);
       setTopicInput('');
+      setNotifyByEmail(false);
+      setNotificationEmail('');
     } catch (error: any) {
       onUploadError(error.message || 'Failed to process topic');
     } finally {
@@ -297,8 +331,8 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
         <button
           onClick={() => setInputMode('file')}
           className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${inputMode === 'file'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
         >
           📁 Upload Files
@@ -306,8 +340,8 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
         <button
           onClick={() => setInputMode('topic')}
           className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${inputMode === 'topic'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
         >
           ✏️ Enter Topic
@@ -374,10 +408,10 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
         <div
           {...getRootProps()}
           className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${!uploadRestriction.allowed
-              ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
-              : isDragActive
-                ? 'border-blue-400 bg-blue-50'
-                : 'border-gray-300 hover:border-gray-400'
+            ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+            : isDragActive
+              ? 'border-blue-400 bg-blue-50'
+              : 'border-gray-300 hover:border-gray-400'
             }`}
         >
           <input {...getInputProps()} />
@@ -461,13 +495,45 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
         </div>
       )}
 
+      {/* Email Notification Option */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <label className="flex items-start space-x-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={notifyByEmail}
+            onChange={(e) => setNotifyByEmail(e.target.checked)}
+            className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            disabled={!uploadRestriction.allowed || isUploading}
+          />
+          <div className="flex-1">
+            <span className="font-medium text-blue-800">📧 Get notified by email when processing is complete</span>
+            <p className="text-sm text-blue-600 mt-1">
+              Processing can take a few minutes. We'll email you when your study materials are ready.
+            </p>
+          </div>
+        </label>
+
+        {notifyByEmail && (
+          <div className="mt-3 ml-7">
+            <input
+              type="email"
+              value={notificationEmail}
+              onChange={(e) => setNotificationEmail(e.target.value)}
+              placeholder="Enter your email address"
+              className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              disabled={!uploadRestriction.allowed || isUploading}
+            />
+          </div>
+        )}
+      </div>
+
       {/* Submit Button */}
       <button
         onClick={inputMode === 'file' ? handleUpload : handleTopicSubmit}
         disabled={isUploadDisabled}
         className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${isUploadDisabled
-            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            : 'bg-blue-600 hover:bg-blue-700 text-white'
+          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          : 'bg-blue-600 hover:bg-blue-700 text-white'
           }`}
       >
         {isUploading ? (
