@@ -56,9 +56,6 @@ class Settings(BaseSettings):
     # OCR Scripts
     ocr_scripts_path: str = "/home/unknown/Documents/medgloss-data-extractorfiles"
     
-    # Redis
-    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379")
-    
     # API Configuration
     api_v1_str: str = "/api/v1"
     project_name: str = "StudyBuddy"
@@ -67,7 +64,6 @@ class Settings(BaseSettings):
     
     # Upload Restrictions
     restrict_upload_timing: bool = os.getenv("RESTRICT_UPLOAD_TIMING", "true").lower() == "true"
-    upload_cooldown_minutes: int = int(os.getenv("UPLOAD_COOLDOWN_MINUTES", "5"))
     
     # Rate Limiting
     enable_rate_limiting: bool = os.getenv("ENABLE_RATE_LIMITING", "true").lower() == "true"
