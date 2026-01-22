@@ -20,17 +20,17 @@ export default function InteractiveQuestion({ question, index }: InteractiveQues
   const difficulty = question.difficulty || 'medium';
   const topic = question.topic || '';
   const explanation = question.explanation || '';
-  
+
   // Handle options - can be array or object
   const options = question.options || [];
   const correctAnswer = question.correct_answer || 0;
-  
+
   console.log('Options type:', typeof options, 'Options:', options);
   console.log('Correct answer:', correctAnswer);
-  
+
   // Convert options to array format with proper structure
-  let optionsArray: Array<{option_id: string, text: string, is_correct: boolean}> = [];
-  
+  let optionsArray: Array<{ option_id: string, text: string, is_correct: boolean }> = [];
+
   if (Array.isArray(options)) {
     // Options is an array of strings
     optionsArray = options.map((optText: string, idx: number) => ({
@@ -43,15 +43,15 @@ export default function InteractiveQuestion({ question, index }: InteractiveQues
     optionsArray = Object.entries(options).map(([key, value], idx) => ({
       option_id: key,
       text: value as string,
-      is_correct: key === correctAnswer || idx === correctAnswer
+      is_correct: key === String(correctAnswer) || idx === correctAnswer
     }));
   }
-  
+
   console.log('Final optionsArray:', optionsArray);
 
   const handleOptionSelect = (optionId: string) => {
     if (showResult) return; // Don't allow changing after showing result
-    
+
     setSelectedOption(optionId);
     setShowResult(true);
   };
@@ -80,11 +80,10 @@ export default function InteractiveQuestion({ question, index }: InteractiveQues
     const isSelected = selectedOption === optionKey;
 
     if (!showResult) {
-      return `p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-        isSelected 
-          ? 'border-blue-500 bg-blue-50' 
-          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-      }`;
+      return `p-3 rounded-lg border-2 cursor-pointer transition-colors ${isSelected
+        ? 'border-blue-500 bg-blue-50'
+        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+        }`;
     }
 
     // After showing result
@@ -125,7 +124,7 @@ export default function InteractiveQuestion({ question, index }: InteractiveQues
           {optionsArray.map((option, optIndex) => {
             const isCorrect = option.is_correct;
             const isSelected = selectedOption === option.option_id;
-            
+
             return (
               <div
                 key={optIndex}
@@ -159,27 +158,26 @@ export default function InteractiveQuestion({ question, index }: InteractiveQues
       {showResult && (
         <div className="space-y-3">
           {/* Result indicator */}
-          <div className={`p-3 rounded-lg ${
-            selectedOption === correctAnswer || 
-            optionsArray.find(opt => (opt.option_id || String.fromCharCode(65 + optionsArray.indexOf(opt))) === selectedOption)?.is_correct
-              ? 'bg-green-50 border border-green-200' 
-              : 'bg-red-50 border border-red-200'
-          }`}>
-            <div className="flex items-center">
-              {selectedOption === correctAnswer || 
-               optionsArray.find(opt => (opt.option_id || String.fromCharCode(65 + optionsArray.indexOf(opt))) === selectedOption)?.is_correct ? (
-                <>
-                  <span className="text-green-600 text-xl mr-2">🎉</span>
-                  <span className="text-green-800 font-medium">Correct!</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-red-600 text-xl mr-2">❌</span>
-                  <span className="text-red-800 font-medium">Incorrect</span>
-                </>
-              )}
-            </div>
-          </div>
+          {(() => {
+            const isCorrect = optionsArray.find(opt => opt.option_id === selectedOption)?.is_correct || false;
+            return (
+              <div className={`p-3 rounded-lg ${isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                <div className="flex items-center">
+                  {isCorrect ? (
+                    <>
+                      <span className="text-green-600 text-xl mr-2">🎉</span>
+                      <span className="text-green-800 font-medium">Correct!</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-red-600 text-xl mr-2">❌</span>
+                      <span className="text-red-800 font-medium">Incorrect</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Explanation */}
           {explanation && (

@@ -9,12 +9,12 @@ interface MockTestInterfaceProps {
   onExit: () => void;
 }
 
-export default function MockTestInterface({ 
-  questions, 
-  testName, 
-  duration, 
-  onSubmit, 
-  onExit 
+export default function MockTestInterface({
+  questions,
+  testName,
+  duration,
+  onSubmit,
+  onExit
 }: MockTestInterfaceProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -62,11 +62,11 @@ export default function MockTestInterface({
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    
+
     // Prevent context menu and shortcuts
     const preventActions = (e: KeyboardEvent) => {
-      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || 
-          (e.ctrlKey && e.key === 'u') || e.key === 'F5') {
+      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+        (e.ctrlKey && e.key === 'u') || e.key === 'F5') {
         e.preventDefault();
       }
     };
@@ -139,7 +139,7 @@ export default function MockTestInterface({
 
       {/* Progress Bar */}
       <div className="bg-gray-200 h-2">
-        <div 
+        <div
           className="bg-blue-500 h-full transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
@@ -152,48 +152,59 @@ export default function MockTestInterface({
             <h2 className="text-xl font-semibold mb-6 text-gray-800">
               {currentQ.question_text}
             </h2>
-            
+
             <div className="space-y-3">
-              {(currentQ.options || []).map((option, index) => {
-                // Handle both string array and object array formats
-                const isStringArray = typeof option === 'string';
-                const optionId = isStringArray ? index.toString() : option.option_id;
-                const optionText = isStringArray ? option : option.text;
-                
-                return (
+              {(() => {
+                // Convert options to array format
+                const rawOptions = currentQ.options || {};
+                let optionsArray: { key: string; text: string }[] = [];
+
+                if (Array.isArray(rawOptions)) {
+                  // Options is already an array (of strings or objects)
+                  optionsArray = rawOptions.map((opt, idx) => ({
+                    key: typeof opt === 'string' ? String.fromCharCode(65 + idx) : (opt.option_id || String.fromCharCode(65 + idx)),
+                    text: typeof opt === 'string' ? opt : (opt.text || '')
+                  }));
+                } else if (typeof rawOptions === 'object') {
+                  // Options is a dict like {A: "text", B: "text"}
+                  optionsArray = Object.entries(rawOptions).map(([key, value]) => ({
+                    key,
+                    text: value as string
+                  }));
+                }
+
+                return optionsArray.map((option, index) => (
                   <label
-                    key={optionId}
-                    className={`block p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      answers[currentQ.question_id] === optionId
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    key={option.key}
+                    className={`block p-4 border-2 rounded-lg cursor-pointer transition-all ${answers[(currentQ as any).question_id || (currentQ as any).id] === option.key
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                      }`}
                   >
                     <input
                       type="radio"
-                      name={`question-${currentQ.question_id}`}
-                      value={optionId}
-                      checked={answers[currentQ.question_id] === optionId}
-                      onChange={() => handleAnswerSelect(currentQ.question_id, optionId)}
+                      name={`question-${(currentQ as any).question_id || (currentQ as any).id}`}
+                      value={option.key}
+                      checked={answers[(currentQ as any).question_id || (currentQ as any).id] === option.key}
+                      onChange={() => handleAnswerSelect((currentQ as any).question_id || (currentQ as any).id, option.key)}
                       className="sr-only"
                     />
                     <div className="flex items-center">
-                      <div className={`w-4 h-4 rounded-full border-2 mr-3 ${
-                        answers[currentQ.question_id] === optionId
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-gray-300'
-                      }`}>
-                        {answers[currentQ.question_id] === optionId && (
+                      <div className={`w-4 h-4 rounded-full border-2 mr-3 ${answers[(currentQ as any).question_id || (currentQ as any).id] === option.key
+                        ? 'border-blue-500 bg-blue-500'
+                        : 'border-gray-300'
+                        }`}>
+                        {answers[(currentQ as any).question_id || (currentQ as any).id] === option.key && (
                           <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5" />
                         )}
                       </div>
                       <span className="text-gray-800">
-                        {String.fromCharCode(65 + index)}. {optionText}
+                        {option.key}. {option.text}
                       </span>
                     </div>
                   </label>
-                );
-              })}
+                ));
+              })()}
             </div>
           </div>
         </div>
@@ -208,23 +219,25 @@ export default function MockTestInterface({
         >
           Previous
         </button>
-        
+
         <div className="flex space-x-2">
-          {questions.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentQuestion(index)}
-              className={`w-8 h-8 rounded text-sm ${
-                index === currentQuestion
-                  ? 'bg-blue-500 text-white'
-                  : answers[questions[index].question_id]
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-200 text-gray-600'
-              }`}
-            >
-              {index + 1}
-            </button>
-          ))}
+          {questions.map((q, index) => {
+            const qId = (q as any).question_id || (q as any).id;
+            return (
+              <button
+                key={index}
+                onClick={() => setCurrentQuestion(index)}
+                className={`w-8 h-8 rounded text-sm ${index === currentQuestion
+                    ? 'bg-blue-500 text-white'
+                    : answers[qId]
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-200 text-gray-600'
+                  }`}
+              >
+                {index + 1}
+              </button>
+            );
+          })}
         </div>
 
         {currentQuestion === questions.length - 1 ? (

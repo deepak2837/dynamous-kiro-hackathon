@@ -121,7 +121,6 @@ export enum ProcessingStep {
 
 // Enums
 export enum ProcessingMode {
-  OCR_AI = "ocr_ai",
   AI_ONLY = "ai_only"
 }
 

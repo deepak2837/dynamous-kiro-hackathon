@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(JSON.parse(storedUser));
         }
       } catch (error) {
-        ErrorLogger.logError(error as Error, 'auth_initialization', undefined, { storedToken: !!storedToken });
+        ErrorLogger.logError(error as Error, 'auth_initialization', undefined, {});
         console.error('Error initializing auth:', error);
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 1000);
 
     initAuth();
-    
+
     return () => clearTimeout(timer);
   }, []);
 
