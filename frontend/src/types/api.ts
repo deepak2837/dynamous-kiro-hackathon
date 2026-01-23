@@ -114,6 +114,7 @@ export enum ProcessingStep {
   GENERATING_MNEMONICS = "generating_mnemonics",
   GENERATING_CHEAT_SHEETS = "generating_cheat_sheets",
   GENERATING_NOTES = "generating_notes",
+  GENERATING_FLASHCARDS = "generating_flashcards",
   FINALIZING = "finalizing",
   COMPLETED = "completed",
   FAILED = "failed"
@@ -121,7 +122,6 @@ export enum ProcessingStep {
 
 // Enums
 export enum ProcessingMode {
-  OCR_AI = "ocr_ai",
   AI_ONLY = "ai_only"
 }
 
@@ -153,3 +153,37 @@ export interface MockTestListResponse {
   mock_tests: MockTest[];
   total_count: number;
 }
+
+export interface Flashcard {
+  flashcard_id: string;
+  session_id: string;
+  user_id: string;
+  front_text: string;
+  back_text: string;
+  category: MedicalCategory;
+  difficulty: DifficultyLevel;
+  medical_topic?: string;
+  pronunciation?: string;
+  spaced_repetition_data: SpacedRepetitionData;
+  created_at: string;
+}
+
+export interface SpacedRepetitionData {
+  ease_factor: number;
+  interval: number;
+  repetitions: number;
+  next_review_date: string;
+  last_reviewed: string | null;
+}
+
+export interface FlashcardReview {
+  quality: number; // 0-5 rating for spaced repetition
+  time_spent: number; // seconds spent reviewing
+}
+
+export interface FlashcardListResponse {
+  flashcards: Flashcard[];
+  total_count: number;
+}
+
+export type MedicalCategory = 'anatomy' | 'pharmacology' | 'pathology' | 'physiology' | 'clinical';

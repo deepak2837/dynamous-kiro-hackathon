@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
 import bcrypt
@@ -10,14 +10,17 @@ from app.auth_models_simple import *
 from app.services.otp_service import OTPService, OTPManager
 from app.config import settings
 from app.utils.error_logger import error_logger
+from app.database import get_database
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 security = HTTPBearer()
+limiter = Limiter(key_func=get_remote_address)
 
-# Simple database connection
+# Use dependency injection for database connection
 def get_db():
-    client = pymongo.MongoClient(settings.mongodb_url)
-    return client[settings.database_name]
+    return get_database()
 
 def normalize_phone_number(phone: str) -> str:
     """Normalize phone number format"""
@@ -45,7 +48,7 @@ def generate_jwt_token(user_id: str, mobile_number: str) -> str:
     payload = {
         'user_id': user_id,
         'mobile_number': mobile_number,
-        'exp': datetime.utcnow() + timedelta(days=30),
+        'exp': datetime.utcnow() + timedelta(hours=24),  # 24 hours expiry
         'iat': datetime.utcnow()
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
@@ -72,7 +75,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         )
     
     db = get_db()
-    user = db.users.find_one({"_id": ObjectId(payload["user_id"])})
+    user = await db.users.find_one({"_id": ObjectId(payload["user_id"])})
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -102,7 +105,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 async def check_user_exists(request: UserExistsRequest):
     """Check if user exists by mobile number"""
     try:
-        mobile_number = normalize_phone_number(user_request.mobile_number)
+        mobile_number = normalize_phone_number(request.mobile_number)
         db = get_db()
         user = db.users.find_one({"mobile_number": mobile_number})
         
@@ -117,14 +120,15 @@ async def check_user_exists(request: UserExistsRequest):
         )
 
 @router.post("/send-otp", response_model=MessageResponse)
-async def send_registration_otp(otp_request: SendOTPRequest):
+@limiter.limit("5/minute")
+async def send_registration_otp(request: Request, otp_request: SendOTPRequest):
     """Send OTP for registration"""
     try:
-        mobile_number = normalize_phone_number(request.mobile_number)
+        mobile_number = normalize_phone_number(otp_request.mobile_number)
         
         # Check if user already exists
         db = get_db()
-        user = db.users.find_one({"mobile_number": mobile_number})
+        user = await db.users.find_one({"mobile_number": mobile_number})
         if user and user.get("verified", False):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -134,16 +138,31 @@ async def send_registration_otp(otp_request: SendOTPRequest):
         # Generate OTP
         otp = OTPService.generate_otp()
         
-        # Send OTP (for demo, we'll just store it)
+        # Send OTP via the specified method
+        otp_sent = await OTPService.send_otp(
+            mobile_number=mobile_number,
+            otp=otp,
+            method=otp_request.otp_method.value,
+            email=otp_request.email,
+            name="User"
+        )
+        
+        if not otp_sent:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send OTP. Please try again."
+            )
+        
+        # Also print for demo purposes
         print(f"📱 OTP for {mobile_number}: {otp}")
         
         # Store OTP
         OTPManager.store_otp(
             mobile_number=mobile_number,
             otp=otp,
-            method=request.otp_method,
+            method=otp_request.otp_method,
             purpose="registration",
-            email=request.email
+            email=otp_request.email
         )
         
         return MessageResponse(message="OTP sent successfully")
@@ -151,7 +170,7 @@ async def send_registration_otp(otp_request: SendOTPRequest):
     except HTTPException:
         raise
     except Exception as e:
-        error_logger.log_error(e, "send_registration_otp", additional_info={"mobile_number": request.mobile_number, "otp_method": request.otp_method})
+        error_logger.log_error(e, "send_registration_otp", additional_info={"mobile_number": otp_request.mobile_number, "otp_method": otp_request.otp_method})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error sending OTP: {str(e)}"
@@ -163,12 +182,16 @@ async def register_user(request: UserRegisterRequest):
     try:
         mobile_number = normalize_phone_number(request.mobile_number)
         
-        # For demo, skip OTP verification
-        # In production, verify OTP here
+        # Verify OTP before registration
+        if not OTPManager.verify_otp(mobile_number, request.otp):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired OTP"
+            )
         
         # Check if user already exists
         db = get_db()
-        user = db.users.find_one({"mobile_number": mobile_number})
+        user = await db.users.find_one({"mobile_number": mobile_number})
         if user and user.get("verified", False):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -195,7 +218,7 @@ async def register_user(request: UserRegisterRequest):
         }
         
         # Create user
-        result = db.users.insert_one(user_data)
+        result = await db.users.insert_one(user_data)
         if not result.inserted_id:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -203,7 +226,7 @@ async def register_user(request: UserRegisterRequest):
             )
         
         # Get created user
-        user = db.users.find_one({"_id": result.inserted_id})
+        user = await db.users.find_one({"_id": result.inserted_id})
         user_response = UserResponse(
             id=str(user["_id"]),
             name=user["name"],
@@ -238,19 +261,20 @@ async def register_user(request: UserRegisterRequest):
         )
 
 @router.post("/login", response_model=TokenResponse)
-async def login_user(request: UserLoginRequest):
+@limiter.limit("10/minute")
+async def login_user(request: Request, request_data: UserLoginRequest):
     """Login user with mobile number and password"""
     try:
-        mobile_number = normalize_phone_number(request.mobile_number)
+        mobile_number = normalize_phone_number(request_data.mobile_number)
         
         # Find user
         db = get_db()
-        user = db.users.find_one({
+        user = await db.users.find_one({
             "mobile_number": mobile_number,
             "verified": True
         })
         
-        if not user or not verify_password(request.password, user["password_hash"]):
+        if not user or not verify_password(request_data.password, user["password_hash"]):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid mobile number or password"
@@ -283,7 +307,7 @@ async def login_user(request: UserLoginRequest):
     except HTTPException:
         raise
     except Exception as e:
-        error_logger.log_error(e, "login_user", additional_info={"mobile_number": request.mobile_number})
+        error_logger.log_error(e, "login_user", additional_info={"mobile_number": request_data.mobile_number})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error logging in: {str(e)}"

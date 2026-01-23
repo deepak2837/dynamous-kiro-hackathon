@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { FiClock, FiFileText, FiBook, FiTarget, FiBookmark, FiEdit3, FiChevronRight } from 'react-icons/fi';
+import { FiClock, FiFileText, FiChevronRight, FiRefreshCw, FiFolder, FiLoader } from 'react-icons/fi';
 
 interface Session {
   session_id: string;
@@ -74,40 +74,39 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ onSessionSelect }) => {
     });
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
-        return 'text-green-600 bg-green-100';
+        return 'text-emerald-700 bg-emerald-100/80 border-emerald-200';
       case 'processing':
-        return 'text-blue-600 bg-blue-100';
+        return 'text-pink-700 bg-pink-100/80 border-pink-200 animate-pulse';
       case 'failed':
-        return 'text-red-600 bg-red-100';
+        return 'text-rose-700 bg-rose-100/80 border-rose-200';
       default:
-        return 'text-gray-600 bg-gray-100';
+        return 'text-gray-600 bg-gray-100/80 border-gray-200';
     }
   };
 
   const getContentSummary = (session: Session) => {
     if (!session.content_counts) return 'Processing...';
-    
+
     const counts = session.content_counts;
     const total = counts.questions + counts.mock_tests + counts.mnemonics + counts.cheat_sheets + counts.notes;
-    
+
     if (total === 0) return 'No content generated';
-    
+
     const items = [];
-    if (counts.questions > 0) items.push(`${counts.questions} questions`);
-    if (counts.mock_tests > 0) items.push(`${counts.mock_tests} tests`);
-    if (counts.mnemonics > 0) items.push(`${counts.mnemonics} mnemonics`);
-    if (counts.cheat_sheets > 0) items.push(`${counts.cheat_sheets} sheets`);
-    if (counts.notes > 0) items.push(`${counts.notes} notes`);
-    
-    return items.slice(0, 2).join(', ') + (items.length > 2 ? '...' : '');
+    if (counts.questions > 0) items.push(`${counts.questions} Q`);
+    if (counts.mock_tests > 0) items.push(`${counts.mock_tests} Tests`);
+    if (counts.mnemonics > 0) items.push(`${counts.mnemonics} Mnemonics`);
+
+    return items.slice(0, 3).join(' • ');
   };
 
   if (!token) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border p-6 text-center">
+      <div className="card text-center py-12">
+        <div className="text-5xl mb-4 animate-float">🔐</div>
         <p className="text-gray-500">Please login to view your session history</p>
       </div>
     );
@@ -115,14 +114,16 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ onSessionSelect }) => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <FiClock className="h-5 w-5 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900">Session History</h3>
+      <div className="card">
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-fuchsia-500 rounded-xl flex items-center justify-center">
+            <FiClock className="h-5 w-5 text-white" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900">Session History</h3>
         </div>
-        <div className="animate-pulse space-y-3">
+        <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 bg-gray-200 rounded"></div>
+            <div key={i} className="h-20 bg-gradient-to-r from-pink-100/50 to-fuchsia-100/50 rounded-xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -131,74 +132,87 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ onSessionSelect }) => {
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <FiClock className="h-5 w-5 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900">Session History</h3>
+      <div className="card">
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-fuchsia-500 rounded-xl flex items-center justify-center">
+            <FiClock className="h-5 w-5 text-white" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900">Session History</h3>
         </div>
-        <p className="text-red-600">{error}</p>
-        <button 
-          onClick={fetchSessions}
-          className="mt-2 text-blue-600 hover:text-blue-800"
-        >
-          Try again
-        </button>
+        <div className="text-center py-8">
+          <div className="text-4xl mb-3">😔</div>
+          <p className="text-rose-600 font-medium mb-4">{error}</p>
+          <button
+            onClick={fetchSessions}
+            className="btn-secondary inline-flex items-center space-x-2"
+          >
+            <FiRefreshCw className="w-4 h-4" />
+            <span>Try again</span>
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-6">
+    <div className="card">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-2">
-          <FiClock className="h-5 w-5 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900">Session History</h3>
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg shadow-pink-200/50">
+            <FiClock className="h-5 w-5 text-white" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900">Session History</h3>
         </div>
-        <span className="text-sm text-gray-500">{sessions.length} sessions</span>
+        <span className="text-sm text-pink-600 font-medium bg-pink-100/50 px-3 py-1 rounded-full">
+          {sessions.length} sessions
+        </span>
       </div>
 
       {sessions.length === 0 ? (
-        <div className="text-center py-8">
-          <FiFileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No sessions yet</p>
-          <p className="text-sm text-gray-400">Upload some files to get started!</p>
+        <div className="text-center py-12">
+          <div className="text-5xl mb-4 animate-float">📂</div>
+          <p className="text-gray-600 font-medium">No sessions yet</p>
+          <p className="text-sm text-pink-400 mt-1">Upload some files to get started!</p>
         </div>
       ) : (
-        <div className="space-y-3 max-h-96 overflow-y-auto">
-          {sessions.map((session) => (
+        <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+          {sessions.map((session, index) => (
             <div
               key={session.session_id}
-              className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+              className="bg-white/70 backdrop-blur-sm border border-pink-100 rounded-xl p-4 hover:bg-white hover:shadow-lg hover:shadow-pink-100/30 transition-all duration-300 cursor-pointer group animate-slide-up"
+              style={{ animationDelay: `${index * 50}ms` }}
               onClick={() => onSessionSelect?.(session.session_id)}
             >
-              <div className="flex items-start justify-between">
+              <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <h4 className="text-sm font-medium text-gray-900 truncate">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h4 className="text-sm font-semibold text-gray-900 truncate group-hover:text-pink-600 transition-colors">
                       {session.session_name}
                     </h4>
-                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(session.status)}`}>
+                    <span className={`px-2 py-0.5 text-xs rounded-full font-medium border ${getStatusStyle(session.status)}`}>
                       {session.status}
                     </span>
                   </div>
-                  
-                  <div className="flex items-center space-x-4 text-xs text-gray-500 mb-2">
-                    <span className="flex items-center space-x-1">
-                      <FiClock className="h-3 w-3" />
+
+                  <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                    <span className="flex items-center gap-1">
+                      <FiClock className="h-3 w-3 text-pink-400" />
                       <span>{formatDate(session.created_at)}</span>
                     </span>
-                    <span className="flex items-center space-x-1">
-                      <FiFileText className="h-3 w-3" />
+                    <span className="flex items-center gap-1">
+                      <FiFileText className="h-3 w-3 text-fuchsia-400" />
                       <span>{session.files_uploaded?.length || 0} files</span>
                     </span>
                   </div>
-                  
-                  <p className="text-xs text-gray-600">
+
+                  <p className="text-xs text-pink-600 font-medium">
                     {getContentSummary(session)}
                   </p>
                 </div>
-                
-                <FiChevronRight className="h-4 w-4 text-gray-400 ml-2 flex-shrink-0" />
+
+                <div className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center group-hover:bg-gradient-to-r group-hover:from-pink-500 group-hover:to-fuchsia-500 transition-all duration-300 ml-3 flex-shrink-0">
+                  <FiChevronRight className="h-4 w-4 text-pink-500 group-hover:text-white transition-colors" />
+                </div>
               </div>
             </div>
           ))}

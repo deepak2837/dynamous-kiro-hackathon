@@ -5,6 +5,7 @@ import secrets
 import string
 import json
 import base64
+import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
@@ -12,6 +13,8 @@ from datetime import datetime, timedelta
 import os
 from app.config import settings
 from app.utils.error_logger import error_logger
+
+logger = logging.getLogger(__name__)
 
 class OTPService:
     """Service for sending OTP via SMS and Email"""
@@ -126,10 +129,10 @@ If you didn't request this OTP, please ignore this email.
         
         # Fall back to SMTP
         try:
-            smtp_server = settings.SMTP_SERVER
-            smtp_port = settings.SMTP_PORT
-            smtp_username = settings.SMTP_USERNAME
-            smtp_password = settings.SMTP_PASSWORD
+            smtp_server = settings.smtp_server
+            smtp_port = settings.smtp_port
+            smtp_username = settings.smtp_username
+            smtp_password = settings.smtp_password
             
             if not all([smtp_server, smtp_port, smtp_username, smtp_password]):
                 logger.info("Email configuration not complete")

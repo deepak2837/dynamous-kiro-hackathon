@@ -5,6 +5,7 @@ import { useDropzone } from 'react-dropzone';
 import { ProcessingMode } from '@/types/api';
 import { StudyBuddyAPI } from '@/lib/studybuddy-api';
 import { useAuth } from '@/contexts/AuthContext';
+import { FiUploadCloud, FiFile, FiX, FiMail, FiEdit3, FiZap } from 'react-icons/fi';
 
 interface FileUploadProps {
   onUploadSuccess: (sessionId: string) => void;
@@ -20,7 +21,7 @@ interface FileLimits {
 export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploadProps) {
   const { user } = useAuth();
   const [files, setFiles] = useState<File[]>([]);
-  const [processingMode, setProcessingMode] = useState<ProcessingMode>(ProcessingMode.OCR_AI);
+  const [processingMode, setProcessingMode] = useState<ProcessingMode>(ProcessingMode.AI_ONLY);
   const [isUploading, setIsUploading] = useState(false);
   const [fileLimits, setFileLimits] = useState<FileLimits | null>(null);
   const [uploadRestriction, setUploadRestriction] = useState<{
@@ -31,6 +32,8 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
   const [countdown, setCountdown] = useState<number>(0);
   const [inputMode, setInputMode] = useState<'file' | 'topic'>('file');
   const [topicInput, setTopicInput] = useState<string>('');
+  const [notifyByEmail, setNotifyByEmail] = useState<boolean>(false);
+  const [notificationEmail, setNotificationEmail] = useState<string>('');
 
   // Get user ID from authenticated user
   const userId = user?.id || '';
@@ -38,8 +41,9 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
   // Don't render if no user
   if (!user) {
     return (
-      <div className="text-center p-8">
-        <p className="text-gray-600">Please login to upload files.</p>
+      <div className="card text-center p-12">
+        <div className="text-6xl mb-4 animate-float">🔐</div>
+        <p className="text-gray-600 text-lg">Please login to upload files.</p>
       </div>
     );
   }
@@ -236,10 +240,26 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
     setIsUploading(true);
     try {
       const response = await StudyBuddyAPI.uploadFiles(files, processingMode, userId);
+
+      // Enable email notification if requested
+      if (notifyByEmail && notificationEmail.trim()) {
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/upload/enable-notification/${response.session_id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: notificationEmail.trim() })
+          });
+        } catch (e) {
+          console.error('Failed to enable email notification:', e);
+        }
+      }
+
       onUploadSuccess(response.session_id);
 
       // Reset form
       setFiles([]);
+      setNotifyByEmail(false);
+      setNotificationEmail('');
 
       // Recheck restrictions after successful upload
       setTimeout(checkUploadRestrictions, 1000);
@@ -279,8 +299,24 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
       }
 
       const data = await response.json();
+
+      // Enable email notification if requested
+      if (notifyByEmail && notificationEmail.trim()) {
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/upload/enable-notification/${data.session_id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: notificationEmail.trim() })
+          });
+        } catch (e) {
+          console.error('Failed to enable email notification:', e);
+        }
+      }
+
       onUploadSuccess(data.session_id);
       setTopicInput('');
+      setNotifyByEmail(false);
+      setNotificationEmail('');
     } catch (error: any) {
       onUploadError(error.message || 'Failed to process topic');
     } finally {
@@ -290,41 +326,47 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
 
   const isUploadDisabled = (inputMode === 'file' ? files.length === 0 : topicInput.trim().length < 3) || isUploading || !uploadRestriction.allowed;
 
+  const topicSuggestions = ['Heart anatomy', 'Diabetes mellitus', 'Cranial nerves', 'Respiratory pathology', 'Antibiotics'];
+
   return (
     <div className="space-y-6">
       {/* Input Mode Toggle */}
-      <div className="flex space-x-2 mb-4">
+      <div className="flex bg-pink-100/50 backdrop-blur-sm p-1.5 rounded-2xl">
         <button
           onClick={() => setInputMode('file')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${inputMode === 'file'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-2 ${inputMode === 'file'
+            ? 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-lg shadow-pink-300/50'
+            : 'text-pink-600 hover:bg-white/50'
             }`}
         >
-          📁 Upload Files
+          <FiUploadCloud className="w-5 h-5" />
+          <span>Upload Files</span>
         </button>
         <button
           onClick={() => setInputMode('topic')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${inputMode === 'topic'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-2 ${inputMode === 'topic'
+            ? 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-lg shadow-pink-300/50'
+            : 'text-pink-600 hover:bg-white/50'
             }`}
         >
-          ✏️ Enter Topic
+          <FiEdit3 className="w-5 h-5" />
+          <span>Enter Topic</span>
         </button>
       </div>
 
       {/* Upload Restriction Warning */}
       {!uploadRestriction.allowed && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-yellow-600">⚠️</span>
+        <div className="bg-amber-50/80 backdrop-blur-sm border-2 border-amber-200 rounded-2xl p-5 animate-slide-up">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+              <span className="text-2xl">⚠️</span>
+            </div>
             <div>
-              <p className="text-yellow-800 font-medium">Upload Restricted</p>
-              <p className="text-yellow-700 text-sm">
+              <p className="text-amber-800 font-semibold">Upload Restricted</p>
+              <p className="text-amber-700 text-sm">
                 {uploadRestriction.message}
                 {countdown > 0 && (
-                  <span className="font-mono ml-2">({formatCountdown(countdown)})</span>
+                  <span className="font-mono ml-2 bg-amber-200 px-2 py-0.5 rounded-lg">({formatCountdown(countdown)})</span>
                 )}
               </p>
             </div>
@@ -334,9 +376,9 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
 
       {/* Topic Input Mode */}
       {inputMode === 'topic' && (
-        <div className="space-y-4">
+        <div className="space-y-5 animate-slide-up">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
               Enter a medical topic to generate study materials
             </label>
             <input
@@ -344,22 +386,25 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
               value={topicInput}
               onChange={(e) => setTopicInput(e.target.value)}
               placeholder="e.g., Heart anatomy, Diabetes management, Cranial nerves..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="input-field text-lg"
               disabled={!uploadRestriction.allowed}
             />
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-pink-400 mt-2">
               The AI will generate questions, notes, mnemonics, cheat sheets, and mock tests about this topic.
             </p>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-medium text-blue-800 mb-2">💡 Topic Ideas</h4>
+          <div className="card-glass !p-5">
+            <h4 className="font-semibold text-pink-700 mb-3 flex items-center">
+              <span className="mr-2">💡</span> Topic Ideas
+            </h4>
             <div className="flex flex-wrap gap-2">
-              {['Heart anatomy', 'Diabetes mellitus', 'Cranial nerves', 'Respiratory pathology', 'Antibiotics'].map(topic => (
+              {topicSuggestions.map(topic => (
                 <button
                   key={topic}
                   onClick={() => setTopicInput(topic)}
-                  className="text-sm px-3 py-1 bg-white border border-blue-300 rounded-full text-blue-700 hover:bg-blue-100 transition-colors"
+                  className="text-sm px-4 py-2 bg-white border-2 border-pink-200 rounded-full text-pink-600 
+                           hover:bg-pink-50 hover:border-pink-300 hover:scale-105 transition-all duration-200"
                 >
                   {topic}
                 </button>
@@ -373,33 +418,43 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
       {inputMode === 'file' && (
         <div
           {...getRootProps()}
-          className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${!uploadRestriction.allowed
-              ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+          className={`relative border-3 border-dashed rounded-3xl p-10 text-center cursor-pointer transition-all duration-300 overflow-hidden
+            ${!uploadRestriction.allowed
+              ? 'border-gray-200 bg-gray-50/50 cursor-not-allowed'
               : isDragActive
-                ? 'border-blue-400 bg-blue-50'
-                : 'border-gray-300 hover:border-gray-400'
+                ? 'border-pink-500 bg-gradient-to-br from-pink-100/70 to-fuchsia-100/70 scale-[1.02] shadow-2xl shadow-pink-200/50'
+                : 'border-pink-300/60 bg-gradient-to-br from-pink-50/50 to-fuchsia-50/50 hover:border-pink-400 hover:shadow-xl hover:shadow-pink-200/30'
             }`}
         >
           <input {...getInputProps()} />
-          <div className="space-y-2">
-            <div className="text-4xl">📁</div>
+
+          {/* Background decoration */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-4 right-4 w-20 h-20 bg-pink-200/30 rounded-full blur-2xl" />
+            <div className="absolute bottom-4 left-4 w-24 h-24 bg-fuchsia-200/30 rounded-full blur-2xl" />
+          </div>
+
+          <div className="relative space-y-4">
+            <div className={`text-6xl ${isDragActive ? 'animate-bounce' : 'animate-float'}`}>
+              {isDragActive ? '📥' : '📁'}
+            </div>
             {!uploadRestriction.allowed ? (
-              <p className="text-gray-500">Upload temporarily disabled</p>
+              <p className="text-gray-400 font-medium">Upload temporarily disabled</p>
             ) : isDragActive ? (
-              <p className="text-blue-600">Drop the files here...</p>
+              <p className="text-pink-600 font-semibold text-lg">Drop the files here...</p>
             ) : (
               <div>
-                <p className="text-gray-600">
-                  Drag & drop files here, or <span className="text-blue-600">click to select</span>
+                <p className="text-gray-700 text-lg mb-2">
+                  Drag & drop files here, or <span className="text-pink-600 font-semibold">click to select</span>
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-pink-400">
                   Supports PDF, JPG, PNG, PPTX (max 25 images per upload)
                 </p>
                 {fileLimits && (
-                  <div className="text-xs text-gray-400 mt-2 space-y-1">
-                    <div>PDF: max {fileLimits.pdf.max_size_mb}MB</div>
-                    <div>Images: max {fileLimits.image.max_size_mb}MB</div>
-                    <div>Slides: max {fileLimits.slide.max_size_mb}MB</div>
+                  <div className="flex justify-center gap-4 text-xs text-gray-400 mt-3">
+                    <span className="bg-white/70 px-3 py-1 rounded-full">PDF: {fileLimits.pdf.max_size_mb}MB</span>
+                    <span className="bg-white/70 px-3 py-1 rounded-full">Images: {fileLimits.image.max_size_mb}MB</span>
+                    <span className="bg-white/70 px-3 py-1 rounded-full">Slides: {fileLimits.slide.max_size_mb}MB</span>
                   </div>
                 )}
               </div>
@@ -410,26 +465,35 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
 
       {/* Selected Files - Only show in file mode */}
       {inputMode === 'file' && files.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="font-medium text-gray-900">Selected Files ({files.length})</h3>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
+        <div className="space-y-3 animate-slide-up">
+          <h3 className="font-semibold text-gray-900 flex items-center">
+            <FiFile className="mr-2 text-pink-500" />
+            Selected Files ({files.length})
+          </h3>
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
             {files.map((file, index) => (
-              <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded">
-                <div className="flex items-center space-x-3">
-                  <span className="text-sm">📄</span>
+              <div
+                key={index}
+                className="flex items-center justify-between bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-pink-100 group hover:shadow-md transition-all duration-200"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-fuchsia-500 rounded-xl flex items-center justify-center">
+                    <span className="text-white text-sm">📄</span>
+                  </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-pink-400">
                       {(file.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => removeFile(index)}
-                  className="text-red-500 hover:text-red-700 text-sm"
+                  className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all duration-200"
                   disabled={!uploadRestriction.allowed}
                 >
-                  Remove
+                  <FiX className="w-5 h-5" />
                 </button>
               </div>
             ))}
@@ -440,63 +504,109 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
       {/* Processing Mode Selection - Only for file upload */}
       {inputMode === 'file' && (
         <div className="space-y-3">
-          <h3 className="font-medium text-gray-900">Processing Mode</h3>
-          <div className="space-y-2">
-            <label className="flex items-center space-x-3">
-              <input
-                type="radio"
-                name="processingMode"
-                value={ProcessingMode.OCR_AI}
-                checked={processingMode === ProcessingMode.OCR_AI}
-                onChange={(e) => setProcessingMode(e.target.value as ProcessingMode)}
-                className="text-blue-600"
-                disabled={!uploadRestriction.allowed}
-              />
-              <div>
-                <span className="font-medium">OCR + AI Mode</span>
-                <p className="text-sm text-gray-500">Enhanced extraction with AI processing for scanned documents</p>
-              </div>
-            </label>
-
-            <label className="flex items-center space-x-3">
+          <h3 className="font-semibold text-gray-900">Processing Mode</h3>
+          <label className="flex items-center space-x-4 p-4 bg-white/70 backdrop-blur-sm rounded-xl border-2 border-pink-200 cursor-pointer hover:border-pink-300 transition-all duration-200">
+            <div className="relative">
               <input
                 type="radio"
                 name="processingMode"
                 value={ProcessingMode.AI_ONLY}
                 checked={processingMode === ProcessingMode.AI_ONLY}
                 onChange={(e) => setProcessingMode(e.target.value as ProcessingMode)}
-                className="text-blue-600"
+                className="sr-only"
                 disabled={!uploadRestriction.allowed}
               />
+              <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${processingMode === ProcessingMode.AI_ONLY ? 'border-pink-500 bg-pink-500' : 'border-pink-300'}`}>
+                {processingMode === ProcessingMode.AI_ONLY && (
+                  <div className="w-2 h-2 bg-white rounded-full mx-auto mt-1" />
+                )}
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-fuchsia-500 rounded-xl flex items-center justify-center">
+                <FiZap className="w-5 h-5 text-white" />
+              </div>
               <div>
-                <span className="font-medium">AI Only Mode</span>
+                <span className="font-semibold text-gray-900">AI Only Mode</span>
                 <p className="text-sm text-gray-500">Direct AI processing for digital documents</p>
               </div>
-            </label>
-          </div>
+            </div>
+          </label>
         </div>
       )}
+
+      {/* Email Notification Option */}
+      <div className="card-glass !p-5">
+        <label className="flex items-start space-x-4 cursor-pointer">
+          <div className="relative mt-0.5">
+            <input
+              type="checkbox"
+              checked={notifyByEmail}
+              onChange={(e) => setNotifyByEmail(e.target.checked)}
+              className="sr-only"
+              disabled={!uploadRestriction.allowed || isUploading}
+            />
+            <div className={`w-6 h-6 rounded-lg border-2 transition-all duration-200 flex items-center justify-center
+              ${notifyByEmail ? 'bg-gradient-to-br from-pink-500 to-fuchsia-500 border-pink-500' : 'border-pink-300 bg-white'}`}>
+              {notifyByEmail && (
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+          </div>
+          <div className="flex-1">
+            <span className="font-semibold text-pink-700 flex items-center">
+              <FiMail className="mr-2" />
+              Get notified by email when processing is complete
+            </span>
+            <p className="text-sm text-pink-500 mt-1">
+              Processing can take a few minutes. We'll email you when your study materials are ready.
+            </p>
+          </div>
+        </label>
+
+        {notifyByEmail && (
+          <div className="mt-4 ml-10 animate-slide-down">
+            <input
+              type="email"
+              value={notificationEmail}
+              onChange={(e) => setNotificationEmail(e.target.value)}
+              placeholder="Enter your email address"
+              className="input-field"
+              disabled={!uploadRestriction.allowed || isUploading}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Submit Button */}
       <button
         onClick={inputMode === 'file' ? handleUpload : handleTopicSubmit}
         disabled={isUploadDisabled}
-        className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${isUploadDisabled
-            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            : 'bg-blue-600 hover:bg-blue-700 text-white'
+        className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 
+          ${isUploadDisabled
+            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            : 'btn-primary'
           }`}
       >
         {isUploading ? (
-          <div className="flex items-center justify-center space-x-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          <div className="flex items-center justify-center space-x-3">
+            <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
             <span>Processing...</span>
           </div>
         ) : !uploadRestriction.allowed ? (
           `Upload Restricted ${countdown > 0 ? `(${formatCountdown(countdown)})` : ''}`
         ) : inputMode === 'file' ? (
-          `Upload & Process ${files.length > 0 ? `(${files.length} files)` : ''}`
+          <span className="flex items-center justify-center space-x-2">
+            <FiUploadCloud className="w-5 h-5" />
+            <span>Upload & Process {files.length > 0 ? `(${files.length} files)` : ''}</span>
+          </span>
         ) : (
-          `Generate Study Materials`
+          <span className="flex items-center justify-center space-x-2">
+            <FiZap className="w-5 h-5" />
+            <span>Generate Study Materials</span>
+          </span>
         )}
       </button>
     </div>

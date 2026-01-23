@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { FiEye, FiEyeOff, FiLoader, FiPhone, FiMail, FiUser, FiBook } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiLoader, FiPhone, FiMail, FiUser, FiBook, FiArrowRight, FiArrowLeft, FiAlertCircle, FiCheck, FiBriefcase } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 
 const RegisterPage = () => {
@@ -16,12 +16,10 @@ const RegisterPage = () => {
     confirmPassword: '',
     role: 'student' as 'student' | 'doctor',
     otp_method: 'sms' as 'sms' | 'email',
-    // Student fields
     college_name: '',
     course: '',
     year: undefined as number | undefined,
     exam_name: '',
-    // Doctor fields
     hospital_name: '',
     speciality: '',
     experience: '',
@@ -35,7 +33,6 @@ const RegisterPage = () => {
   const { register, sendOTP, user } = useAuth();
   const router = useRouter();
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (user) {
       router.push('/');
@@ -47,23 +44,19 @@ const RegisterPage = () => {
       setError('Name is required');
       return false;
     }
-
     if (!formData.mobile_number.trim()) {
       setError('Mobile number is required');
       return false;
     }
-
     const cleanMobile = formData.mobile_number.replace(/\D/g, '');
     if (cleanMobile.length < 10) {
       setError('Please enter a valid mobile number');
       return false;
     }
-
     if (formData.otp_method === 'email' && !formData.email.trim()) {
       setError('Email is required when using email OTP');
       return false;
     }
-
     if (formData.otp_method === 'email' && formData.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email)) {
@@ -71,18 +64,14 @@ const RegisterPage = () => {
         return false;
       }
     }
-
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters');
       return false;
     }
-
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return false;
     }
-
-    // Role-specific validation
     if (formData.role === 'student') {
       if (!formData.college_name.trim()) {
         setError('College name is required for students');
@@ -114,17 +103,13 @@ const RegisterPage = () => {
         return false;
       }
     }
-
     return true;
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
     try {
@@ -133,7 +118,6 @@ const RegisterPage = () => {
         formData.otp_method,
         formData.otp_method === 'email' ? formData.email : undefined
       );
-
       if (success) {
         toast.success(`OTP sent to your ${formData.otp_method === 'email' ? 'email' : 'mobile number'}`);
         setStep('otp');
@@ -150,7 +134,6 @@ const RegisterPage = () => {
   const handleOTPSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     if (otp.length !== 6) {
       setError('Please enter a valid 6-digit OTP');
       return;
@@ -158,7 +141,6 @@ const RegisterPage = () => {
 
     setIsLoading(true);
     try {
-      // Prepare registration data
       const registrationData = {
         name: formData.name,
         mobile_number: formData.mobile_number,
@@ -176,7 +158,6 @@ const RegisterPage = () => {
       };
 
       const success = await register(registrationData);
-
       if (success) {
         toast.success('Registration successful!');
         router.push('/');
@@ -191,154 +172,137 @@ const RegisterPage = () => {
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    setError(''); // Clear error when user starts typing
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setError('');
   };
 
   const popularCourses = [
-    'Preparing for Exam',
-    'MBBS',
-    'MD',
-    'BDS',
-    'BAMS',
-    'BHMS',
-    'BPT',
-    'BOT',
-    'BSc Nursing',
-    'BSc Medical Lab Technology',
-    'BSc Radiology',
-    'BSc Optometry',
-    'BSc Physiotherapy',
-    'BSc Occupational Therapy',
-    'Other'
+    'Preparing for Exam', 'MBBS', 'MD', 'BDS', 'BAMS', 'BHMS', 'BPT', 'BOT',
+    'BSc Nursing', 'BSc Medical Lab Technology', 'BSc Radiology', 'Other'
   ];
 
   const popularExams = [
-    'NEET PG',
-    'NEET UG',
-    'AIIMS PG',
-    'JIPMER PG',
-    'FMGE',
-    'USMLE Step 1',
-    'USMLE Step 2 CK',
-    'PLAB',
-    'MCAT',
-    'Other'
+    'NEET PG', 'NEET UG', 'AIIMS PG', 'JIPMER PG', 'FMGE',
+    'USMLE Step 1', 'USMLE Step 2 CK', 'PLAB', 'MCAT', 'Other'
   ];
 
   const yearOptions = [1, 2, 3, 4, 5, 6];
 
+  const inputClass = "w-full px-4 py-3 pl-12 bg-white/70 backdrop-blur-md border-2 border-pink-200/50 rounded-xl text-gray-800 placeholder-pink-300 transition-all duration-300 focus:outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-200/50 focus:bg-white";
+  const selectClass = "w-full px-4 py-3 bg-white/70 backdrop-blur-md border-2 border-pink-200/50 rounded-xl text-gray-800 transition-all duration-300 focus:outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-200/50 focus:bg-white";
+  const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your StudyBuddy account
+    <div className="min-h-[80vh] py-12 px-4 sm:px-6 lg:px-8">
+      {/* Decorative Elements */}
+      <div className="fixed top-32 left-10 w-48 h-48 bg-pink-300/20 rounded-full blur-3xl animate-float pointer-events-none" />
+      <div className="fixed bottom-20 right-10 w-64 h-64 bg-fuchsia-300/20 rounded-full blur-3xl animate-float animation-delay-500 pointer-events-none" />
+
+      <div className="max-w-2xl mx-auto relative">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="relative inline-block mb-6">
+            <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-fuchsia-500 rounded-3xl blur-xl opacity-50 animate-pulse" />
+            <div className="relative w-20 h-20 bg-gradient-to-br from-pink-500 to-fuchsia-500 rounded-3xl flex items-center justify-center shadow-2xl shadow-pink-300/50 mx-auto">
+              <span className="text-4xl">✨</span>
+            </div>
+          </div>
+          <h2 className="text-4xl font-extrabold gradient-text mb-2">
+            Join StudyBuddy
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="text-gray-600">Create your account and start learning smarter</p>
+          <p className="mt-3 text-sm text-gray-500">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link href="/login" className="font-semibold text-pink-600 hover:text-pink-700 transition-colors">
               Sign in here
             </Link>
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-8">
+        {/* Progress Indicator */}
+        <div className="flex items-center justify-center mb-8 space-x-4">
+          <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm transition-all duration-300 ${step === 'form' ? 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-lg shadow-pink-300/50' : 'bg-emerald-500 text-white'}`}>
+            {step === 'otp' ? <FiCheck className="w-5 h-5" /> : '1'}
+          </div>
+          <div className={`w-16 h-1 rounded-full ${step === 'otp' ? 'bg-gradient-to-r from-pink-500 to-fuchsia-500' : 'bg-pink-200'}`} />
+          <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm transition-all duration-300 ${step === 'otp' ? 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-lg shadow-pink-300/50' : 'bg-pink-100 text-pink-400'}`}>
+            2
+          </div>
+        </div>
+
+        {/* Registration Card */}
+        <div className="card !p-8 animate-slide-up">
           {step === 'form' && (
             <form onSubmit={handleFormSubmit} className="space-y-6">
-              {/* Basic Information */}
+              {/* Basic Info Section */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                    Full Name *
-                  </label>
-                  <div className="mt-1 relative">
+                  <label className={labelClass}>Full Name *</label>
+                  <div className="relative">
+                    <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-pink-400" />
                     <input
-                      id="name"
-                      name="name"
                       type="text"
                       required
                       value={formData.name}
                       onChange={(e) => handleInputChange('name', e.target.value)}
-                      className="appearance-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      className={inputClass}
                       placeholder="Enter your full name"
                     />
-                    <FiUser className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                   </div>
                 </div>
-
                 <div>
-                  <label htmlFor="mobile" className="block text-sm font-medium text-gray-700">
-                    Mobile Number *
-                  </label>
-                  <div className="mt-1 relative">
+                  <label className={labelClass}>Mobile Number *</label>
+                  <div className="relative">
+                    <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-pink-400" />
                     <input
-                      id="mobile"
-                      name="mobile"
                       type="tel"
                       required
                       value={formData.mobile_number}
                       onChange={(e) => handleInputChange('mobile_number', e.target.value)}
-                      className="appearance-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="Enter your mobile number"
+                      className={inputClass}
+                      placeholder="Enter mobile number"
                     />
-                    <FiPhone className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                   </div>
                 </div>
               </div>
 
-              {/* OTP Method Selection */}
+              {/* OTP Method */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  How would you like to receive OTP? *
-                </label>
-                <div className="flex space-x-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="sms"
-                      checked={formData.otp_method === 'sms'}
-                      onChange={(e) => handleInputChange('otp_method', e.target.value)}
-                      className="mr-2"
-                    />
-                    <FiPhone className="mr-1" />
-                    SMS
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="email"
-                      checked={formData.otp_method === 'email'}
-                      onChange={(e) => handleInputChange('otp_method', e.target.value)}
-                      className="mr-2"
-                    />
-                    <FiMail className="mr-1" />
-                    Email
-                  </label>
+                <label className={labelClass}>OTP Verification Method *</label>
+                <div className="flex bg-pink-100/50 p-1.5 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('otp_method', 'sms')}
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-300 flex items-center justify-center space-x-2 ${formData.otp_method === 'sms' ? 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-lg' : 'text-pink-600 hover:bg-white/50'}`}
+                  >
+                    <FiPhone className="w-4 h-4" />
+                    <span>SMS</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('otp_method', 'email')}
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-300 flex items-center justify-center space-x-2 ${formData.otp_method === 'email' ? 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-lg' : 'text-pink-600 hover:bg-white/50'}`}
+                  >
+                    <FiMail className="w-4 h-4" />
+                    <span>Email</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Email field (conditional) */}
+              {/* Email (if needed) */}
               {formData.otp_method === 'email' && (
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                    Email Address *
-                  </label>
-                  <div className="mt-1 relative">
+                <div className="animate-slide-down">
+                  <label className={labelClass}>Email Address *</label>
+                  <div className="relative">
+                    <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-pink-400" />
                     <input
-                      id="email"
-                      name="email"
                       type="email"
                       required
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
-                      className="appearance-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="Enter your email address"
+                      className={inputClass}
+                      placeholder="Enter your email"
                     />
-                    <FiMail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                   </div>
                 </div>
               )}
@@ -346,51 +310,42 @@ const RegisterPage = () => {
               {/* Password Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                    Password *
-                  </label>
-                  <div className="mt-1 relative">
+                  <label className={labelClass}>Password *</label>
+                  <div className="relative">
                     <input
-                      id="password"
-                      name="password"
                       type={showPassword ? 'text' : 'password'}
                       required
                       value={formData.password}
                       onChange={(e) => handleInputChange('password', e.target.value)}
-                      className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="Enter password"
+                      className="w-full px-4 py-3 pr-12 bg-white/70 backdrop-blur-md border-2 border-pink-200/50 rounded-xl text-gray-800 transition-all focus:outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-200/50"
+                      placeholder="Create password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 hover:text-gray-600"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-pink-400 hover:text-pink-600"
                     >
-                      {showPassword ? <FiEyeOff /> : <FiEye />}
+                      {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
-
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                    Confirm Password *
-                  </label>
-                  <div className="mt-1 relative">
+                  <label className={labelClass}>Confirm Password *</label>
+                  <div className="relative">
                     <input
-                      id="confirmPassword"
-                      name="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
                       value={formData.confirmPassword}
                       onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                      className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      className="w-full px-4 py-3 pr-12 bg-white/70 backdrop-blur-md border-2 border-pink-200/50 rounded-xl text-gray-800 transition-all focus:outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-200/50"
                       placeholder="Confirm password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 hover:text-gray-600"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-pink-400 hover:text-pink-600"
                     >
-                      {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+                      {showConfirmPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
@@ -398,110 +353,81 @@ const RegisterPage = () => {
 
               {/* Role Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  I am a *
-                </label>
-                <div className="flex space-x-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="student"
-                      checked={formData.role === 'student'}
-                      onChange={(e) => handleInputChange('role', e.target.value)}
-                      className="mr-2"
-                    />
-                    <FiBook className="mr-1" />
-                    Student
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="doctor"
-                      checked={formData.role === 'doctor'}
-                      onChange={(e) => handleInputChange('role', e.target.value)}
-                      className="mr-2"
-                    />
-                    <FiUser className="mr-1" />
-                    Doctor
-                  </label>
+                <label className={labelClass}>I am a *</label>
+                <div className="flex bg-pink-100/50 p-1.5 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('role', 'student')}
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-300 flex items-center justify-center space-x-2 ${formData.role === 'student' ? 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-lg' : 'text-pink-600 hover:bg-white/50'}`}
+                  >
+                    <FiBook className="w-4 h-4" />
+                    <span>Student</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('role', 'doctor')}
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-300 flex items-center justify-center space-x-2 ${formData.role === 'doctor' ? 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-lg' : 'text-pink-600 hover:bg-white/50'}`}
+                  >
+                    <FiBriefcase className="w-4 h-4" />
+                    <span>Doctor</span>
+                  </button>
                 </div>
               </div>
 
               {/* Student Fields */}
               {formData.role === 'student' && (
-                <div className="space-y-4 border-t pt-4">
-                  <h3 className="text-lg font-medium text-gray-900">Student Information</h3>
-                  
+                <div className="space-y-4 border-t-2 border-pink-100 pt-6 animate-slide-down">
+                  <h3 className="text-lg font-bold gradient-text flex items-center">
+                    <FiBook className="mr-2" /> Student Information
+                  </h3>
                   <div>
-                    <label htmlFor="college_name" className="block text-sm font-medium text-gray-700">
-                      College Name *
-                    </label>
+                    <label className={labelClass}>College Name *</label>
                     <input
-                      id="college_name"
-                      name="college_name"
                       type="text"
                       required
                       value={formData.college_name}
                       onChange={(e) => handleInputChange('college_name', e.target.value)}
-                      className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      className="input-field"
                       placeholder="Enter your college name"
                     />
                   </div>
-
                   <div>
-                    <label htmlFor="course" className="block text-sm font-medium text-gray-700">
-                      Course *
-                    </label>
+                    <label className={labelClass}>Course *</label>
                     <select
-                      id="course"
-                      name="course"
                       required
                       value={formData.course}
                       onChange={(e) => handleInputChange('course', e.target.value)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      className={selectClass}
                     >
                       <option value="">Select your course</option>
                       {popularCourses.map((course) => (
-                        <option key={course} value={course}>
-                          {course}
-                        </option>
+                        <option key={course} value={course}>{course}</option>
                       ))}
                     </select>
                   </div>
-
                   {formData.course === 'Preparing for Exam' ? (
                     <div>
-                      <label htmlFor="exam_name" className="block text-sm font-medium text-gray-700">
-                        Exam Name *
-                      </label>
+                      <label className={labelClass}>Exam Name *</label>
                       <select
-                        id="exam_name"
-                        name="exam_name"
                         required
                         value={formData.exam_name}
                         onChange={(e) => handleInputChange('exam_name', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        className={selectClass}
                       >
                         <option value="">Select exam</option>
                         {popularExams.map((exam) => (
-                          <option key={exam} value={exam}>
-                            {exam}
-                          </option>
+                          <option key={exam} value={exam}>{exam}</option>
                         ))}
                       </select>
                     </div>
                   ) : formData.course && (
                     <div>
-                      <label htmlFor="year" className="block text-sm font-medium text-gray-700">
-                        Year of Study *
-                      </label>
+                      <label className={labelClass}>Year of Study *</label>
                       <select
-                        id="year"
-                        name="year"
                         required
                         value={formData.year || ''}
                         onChange={(e) => handleInputChange('year', parseInt(e.target.value))}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        className={selectClass}
                       >
                         <option value="">Select year</option>
                         {yearOptions.map((year) => (
@@ -517,52 +443,39 @@ const RegisterPage = () => {
 
               {/* Doctor Fields */}
               {formData.role === 'doctor' && (
-                <div className="space-y-4 border-t pt-4">
-                  <h3 className="text-lg font-medium text-gray-900">Doctor Information</h3>
-                  
+                <div className="space-y-4 border-t-2 border-pink-100 pt-6 animate-slide-down">
+                  <h3 className="text-lg font-bold gradient-text flex items-center">
+                    <FiBriefcase className="mr-2" /> Doctor Information
+                  </h3>
                   <div>
-                    <label htmlFor="hospital_name" className="block text-sm font-medium text-gray-700">
-                      Hospital Name *
-                    </label>
+                    <label className={labelClass}>Hospital Name *</label>
                     <input
-                      id="hospital_name"
-                      name="hospital_name"
                       type="text"
                       required
                       value={formData.hospital_name}
                       onChange={(e) => handleInputChange('hospital_name', e.target.value)}
-                      className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      className="input-field"
                       placeholder="Enter your hospital name"
                     />
                   </div>
-
                   <div>
-                    <label htmlFor="speciality" className="block text-sm font-medium text-gray-700">
-                      Speciality *
-                    </label>
+                    <label className={labelClass}>Speciality *</label>
                     <input
-                      id="speciality"
-                      name="speciality"
                       type="text"
                       required
                       value={formData.speciality}
                       onChange={(e) => handleInputChange('speciality', e.target.value)}
-                      className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      className="input-field"
                       placeholder="Enter your speciality"
                     />
                   </div>
-
                   <div>
-                    <label htmlFor="experience" className="block text-sm font-medium text-gray-700">
-                      Experience *
-                    </label>
+                    <label className={labelClass}>Experience *</label>
                     <select
-                      id="experience"
-                      name="experience"
                       required
                       value={formData.experience}
                       onChange={(e) => handleInputChange('experience', e.target.value)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      className={selectClass}
                     >
                       <option value="">Select experience</option>
                       <option value="0-1 years">0-1 years</option>
@@ -575,69 +488,79 @@ const RegisterPage = () => {
                 </div>
               )}
 
+              {/* Error */}
               {error && (
-                <div className="text-red-600 text-sm">{error}</div>
+                <div className="flex items-center space-x-2 text-rose-600 bg-rose-50 rounded-xl p-4 border border-rose-200 animate-slide-up">
+                  <FiAlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <span className="text-sm font-medium">{error}</span>
+                </div>
               )}
 
+              {/* Submit */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full btn-primary py-4 text-lg font-bold flex items-center justify-center space-x-2"
               >
                 {isLoading ? (
-                  <FiLoader className="animate-spin h-5 w-5 mx-auto" />
+                  <><FiLoader className="w-5 h-5 animate-spin" /><span>Sending OTP...</span></>
                 ) : (
-                  'Send OTP'
+                  <><span>Continue</span><FiArrowRight className="w-5 h-5" /></>
                 )}
               </button>
             </form>
           )}
 
+          {/* OTP Step */}
           {step === 'otp' && (
-            <form onSubmit={handleOTPSubmit} className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Verify OTP</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Enter the 6-digit OTP sent to your {formData.otp_method === 'email' ? 'email' : 'mobile number'}
+            <form onSubmit={handleOTPSubmit} className="space-y-6 animate-slide-up">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-fuchsia-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-pink-300/50">
+                  <span className="text-3xl">🔐</span>
+                </div>
+                <h3 className="text-2xl font-bold gradient-text">Verify OTP</h3>
+                <p className="text-gray-600 mt-2">
+                  Enter the 6-digit code sent to your {formData.otp_method === 'email' ? 'email' : 'mobile'}
                 </p>
-                
-                <label htmlFor="otp" className="block text-sm font-medium text-gray-700">
-                  OTP Code
-                </label>
+              </div>
+
+              <div>
                 <input
-                  id="otp"
-                  name="otp"
                   type="text"
                   maxLength={6}
                   required
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-center text-lg tracking-widest"
-                  placeholder="000000"
+                  className="w-full px-6 py-5 bg-white/80 border-3 border-pink-300 rounded-2xl text-center text-3xl font-bold tracking-[0.5em] text-pink-600 transition-all focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-200/50"
+                  placeholder="••••••"
                 />
               </div>
 
               {error && (
-                <div className="text-red-600 text-sm">{error}</div>
+                <div className="flex items-center space-x-2 text-rose-600 bg-rose-50 rounded-xl p-4 border border-rose-200">
+                  <FiAlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <span className="text-sm font-medium">{error}</span>
+                </div>
               )}
 
-              <div className="flex space-x-3">
+              <div className="flex space-x-4">
                 <button
                   type="button"
                   onClick={() => setStep('form')}
-                  className="flex-1 py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="btn-secondary flex-1 flex items-center justify-center space-x-2"
                 >
-                  Back
+                  <FiArrowLeft className="w-5 h-5" />
+                  <span>Back</span>
                 </button>
                 <button
                   type="submit"
                   disabled={isLoading || otp.length !== 6}
-                  className="flex-1 py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-primary flex-1 flex items-center justify-center space-x-2"
                 >
                   {isLoading ? (
-                    <FiLoader className="animate-spin h-5 w-5 mx-auto" />
+                    <><FiLoader className="w-5 h-5 animate-spin" /><span>Creating...</span></>
                   ) : (
-                    'Create Account'
+                    <><span>Create Account</span><FiCheck className="w-5 h-5" /></>
                   )}
                 </button>
               </div>

@@ -506,8 +506,8 @@ NEXTAUTH_SECRET=your-nextauth-secret-here
 ### Backend (.env)
 ```env
 # Database
-MONGODB_URL=mongodb://localhost:27017/medgloss
-DATABASE_NAME=medgloss
+MONGODB_URL=mongodb://localhost:27017/studybuddy
+DATABASE_NAME=studybuddy
 
 # AI Service
 GOOGLE_AI_API_KEY=your-api-key-here

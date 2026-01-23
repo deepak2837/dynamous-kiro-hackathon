@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import FileUpload from '@/components/FileUpload';
 import ProcessingStatus from '@/components/ProcessingStatus';
 import ResultsViewer from '@/components/ResultsViewer';
 import SessionHistory from '@/components/SessionHistory';
+import { FiCalendar, FiArrowRight } from 'react-icons/fi';
 
 type AppState = 'upload' | 'processing' | 'results';
 
@@ -81,39 +83,33 @@ export default function StudyBuddyPage() {
 
       {/* Progress Indicator */}
       <div className="flex items-center justify-center space-x-4">
-        <div className={`flex items-center space-x-2 ${
-          appState === 'upload' ? 'text-blue-600' : 'text-gray-400'
-        }`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            appState === 'upload' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+        <div className={`flex items-center space-x-2 ${appState === 'upload' ? 'text-blue-600' : 'text-gray-400'
           }`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${appState === 'upload' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+            }`}>
             1
           </div>
           <span className="font-medium">Upload</span>
         </div>
-        
+
         <div className="w-8 h-px bg-gray-300"></div>
-        
-        <div className={`flex items-center space-x-2 ${
-          appState === 'processing' ? 'text-blue-600' : 'text-gray-400'
-        }`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            appState === 'processing' ? 'bg-blue-600 text-white' : 
-            appState === 'results' ? 'bg-green-600 text-white' : 'bg-gray-200'
+
+        <div className={`flex items-center space-x-2 ${appState === 'processing' ? 'text-blue-600' : 'text-gray-400'
           }`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${appState === 'processing' ? 'bg-blue-600 text-white' :
+            appState === 'results' ? 'bg-green-600 text-white' : 'bg-gray-200'
+            }`}>
             {appState === 'results' ? '✓' : '2'}
           </div>
           <span className="font-medium">Process</span>
         </div>
-        
+
         <div className="w-8 h-px bg-gray-300"></div>
-        
-        <div className={`flex items-center space-x-2 ${
-          appState === 'results' ? 'text-blue-600' : 'text-gray-400'
-        }`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            appState === 'results' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+
+        <div className={`flex items-center space-x-2 ${appState === 'results' ? 'text-blue-600' : 'text-gray-400'
           }`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${appState === 'results' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+            }`}>
             3
           </div>
           <span className="font-medium">Results</span>
@@ -133,13 +129,37 @@ export default function StudyBuddyPage() {
       {/* Main Content */}
       <div>
         {appState === 'upload' && (
-          <div className="card">
-            <h2 className="text-xl font-semibold mb-6">Upload Study Materials</h2>
-            <FileUpload
-              onUploadSuccess={handleUploadSuccess}
-              onUploadError={handleUploadError}
-            />
-          </div>
+          <>
+            <div className="card">
+              <h2 className="text-xl font-semibold mb-6">Upload Study Materials</h2>
+              <FileUpload
+                onUploadSuccess={handleUploadSuccess}
+                onUploadError={handleUploadError}
+              />
+            </div>
+
+            {/* Study Planner Quick Access */}
+            <Link
+              href="/study-planner"
+              className="mt-6 bg-gradient-to-br from-pink-50 to-fuchsia-50 border-2 border-pink-200 rounded-2xl p-6 block hover:border-pink-300 transition-all duration-200"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <FiCalendar className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900">Study Planner</h3>
+                    <p className="text-sm text-gray-500">Create personalized study schedules and track your progress</p>
+                  </div>
+                </div>
+                <div className="btn-primary flex items-center space-x-2">
+                  <span>View Plans</span>
+                  <FiArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+            </Link>
+          </>
         )}
 
         {appState === 'processing' && (

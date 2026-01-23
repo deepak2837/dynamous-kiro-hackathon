@@ -55,43 +55,47 @@ async def get_session_questions(
     transformed_questions = []
     for q in questions:
         try:
-            # Handle options - convert from array of strings to dict
-            options = q.get("options", [])
+            # Handle options - can be list of strings, list of dicts, or dict
+            raw_options = q.get("options", [])
             correct = q.get("correct_answer", 0)
+            options_dict = {}
             
-            if isinstance(options, list) and len(options) > 0:
-                # If options is array of strings like ['A) Text', 'B) Text']
-                if isinstance(options[0], str):
-                    options_dict = {}
-                    for i, opt_text in enumerate(options):
-                        option_key = chr(65 + i)  # A, B, C, D
-                        options_dict[option_key] = opt_text
-                    options = options_dict
-                    # Convert numeric correct_answer to letter
-                    if isinstance(correct, int) and correct < len(options_dict):
+            if isinstance(raw_options, list):
+                # If it's a list of strings (most common for file upload)
+                if len(raw_options) > 0 and isinstance(raw_options[0], str):
+                    for i, opt_text in enumerate(raw_options):
+                        opt_id = chr(65 + i)  # A, B, C, D
+                        options_dict[opt_id] = opt_text
+                    # Correct answer is an index, convert to letter
+                    if isinstance(correct, int):
                         correct = chr(65 + correct)
-                # If options is array of dicts
-                elif isinstance(options[0], dict):
-                    options_dict = {}
-                    for opt in options:
-                        opt_id = opt.get("option_id", "").upper()
-                        options_dict[opt_id] = opt.get("text", "")
-                        if opt.get("is_correct"):
-                            correct = opt_id
-                    options = options_dict
+                # If it's a list of dicts
+                else:
+                    for opt in raw_options:
+                        if isinstance(opt, dict):
+                            opt_id = opt.get("option_id", "").upper()
+                            options_dict[opt_id] = opt.get("text", "")
+                            if opt.get("is_correct"):
+                                correct = opt_id
+            elif isinstance(raw_options, dict):
+                # Already a dict
+                options_dict = raw_options
             
             # Normalize difficulty to lowercase
             difficulty = q.get("difficulty", "medium")
             if isinstance(difficulty, str):
                 difficulty = difficulty.lower()
             
-            # Build the question dict
+            # Build the question dict - use question_text OR question
+            question_text = q.get("question_text") or q.get("question", "")
+            
             question_data = {
-                "id": str(q.get("_id", q.get("id", ""))),
+                "id": str(q.get("_id", q.get("question_id", q.get("id", "")))),
                 "session_id": q.get("session_id", session_id),
                 "user_id": q.get("user_id", "anonymous"),
-                "question": q.get("question_text", q.get("question", "")),
-                "options": options,
+                "question_text": question_text,  # Frontend uses question_text
+                "question": question_text,  # Also provide as question for compatibility
+                "options": options_dict,
                 "correct_answer": correct,
                 "explanation": q.get("explanation", ""),
                 "difficulty": difficulty,

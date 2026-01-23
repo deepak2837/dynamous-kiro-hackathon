@@ -30,6 +30,7 @@ async def process_text_input(
     and generate all 5 content types without uploading any files.
     """
     
+    # 🔴 SET BREAKPOINT HERE: Text input request received
     if not topic or len(topic.strip()) < 3:
         raise HTTPException(
             status_code=400,
@@ -60,7 +61,8 @@ async def process_text_input(
         status=SessionStatus.PENDING
     )
     
-    # Save to database
+    # Save to database (use studybuddy database)
+    db = get_database()
     await db.study_sessions.insert_one(session.dict())
     
     # Start background processing

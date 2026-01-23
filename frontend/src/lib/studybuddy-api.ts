@@ -12,6 +12,9 @@ import {
   Mnemonic,
   CheatSheet,
   Note,
+  Flashcard,
+  FlashcardReview,
+  FlashcardListResponse,
   ProcessingMode
 } from '@/types/api';
 
@@ -28,12 +31,12 @@ export class StudyBuddyAPI {
     userId: string
   ): Promise<UploadResponse> {
     const formData = new FormData();
-    
+
     files.forEach(file => {
       formData.append('files', file);
     });
     formData.append('processing_mode', processingMode);
-    // user_id will be obtained from JWT token on backend
+    formData.append('user_id', userId);  // Send user_id to backend
 
     const response = await apiClient.post('/upload/', formData, {
       headers: {
@@ -41,7 +44,7 @@ export class StudyBuddyAPI {
       },
       timeout: 60000, // 60 seconds for file upload processing
     });
-    
+
     return response.data;
   }
 
@@ -159,9 +162,106 @@ export class StudyBuddyAPI {
     return response.data;
   }
 
+  // Flashcards
+  static async getSessionFlashcards(
+    sessionId: string,
+    skip: number = 0,
+    limit: number = 50
+  ): Promise<FlashcardListResponse> {
+    const response = await apiClient.get(`/flashcards/${sessionId}`, {
+      params: { skip, limit }
+    });
+    return response.data;
+  }
+
+  static async reviewFlashcard(
+    flashcardId: string,
+    reviewData: FlashcardReview
+  ): Promise<{ message: string; next_review_date: string; interval_days: number }> {
+    const response = await apiClient.post(`/flashcards/${flashcardId}/review`, reviewData);
+    return response.data;
+  }
+
+  static async getStudyFlashcards(
+    sessionId: string,
+    limit: number = 10
+  ): Promise<FlashcardListResponse> {
+    const response = await apiClient.get(`/flashcards/${sessionId}/study`, {
+      params: { limit }
+    });
+    return response.data;
+  }
+
   // Health Check
   static async healthCheck(): Promise<{ status: string; service: string; version: string }> {
     const response = await apiClient.get('/health');
+    return response.data;
+  }
+
+  // Download PDFs
+  static async downloadQuestionsPdf(sessionId: string): Promise<Blob> {
+    const response = await apiClient.get(`/download/questions/${sessionId}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  }
+
+  static async downloadNotesPdf(sessionId: string): Promise<Blob> {
+    const response = await apiClient.get(`/download/notes/${sessionId}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  }
+
+  static async downloadCheatsheetPdf(sessionId: string): Promise<Blob> {
+    const response = await apiClient.get(`/download/cheatsheet/${sessionId}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  }
+
+  static async downloadMnemonicsPdf(sessionId: string): Promise<Blob> {
+    const response = await apiClient.get(`/download/mnemonics/${sessionId}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  }
+
+  // Study Planner
+  static async generateStudyPlan(sessionId: string, config: any): Promise<any> {
+    const response = await apiClient.post('/study-planner/generate-plan', {
+      session_id: sessionId,
+      config: config
+    }, {
+      timeout: 1160000, // 60 seconds timeout for AI-powered study plan generation
+    });
+    return response.data;
+  }
+
+  static async getStudyPlan(sessionId: string): Promise<any> {
+    const response = await apiClient.get(`/study-planner/plan/${sessionId}`);
+    return response.data;
+  }
+
+  static async updateTaskStatus(taskId: string, status: string, notes?: string): Promise<any> {
+    const response = await apiClient.post('/study-planner/update-task', {
+      task_id: taskId,
+      status: status,
+      notes: notes
+    });
+    return response.data;
+  }
+
+  static async getStudyProgress(planId: string): Promise<any> {
+    const response = await apiClient.get(`/study-planner/progress/${planId}`);
+    return response.data;
+  }
+
+  // Get all user's study plans with progress
+  static async getUserStudyPlans(limit: number = 10): Promise<any> {
+    const response = await apiClient.get('/study-planner/user-plans', {
+      params: { limit }
+    });
     return response.data;
   }
 }
