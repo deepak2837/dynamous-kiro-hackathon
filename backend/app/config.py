@@ -7,12 +7,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Settings(BaseSettings):
+    google_ai_api_key: str
     # Database
     mongodb_url: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017/studybuddy")
     database_name: str = os.getenv("DATABASE_NAME", "studybuddy")
     
     # CORS Configuration
-    allowed_origins: list = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    allowed_origins: list = ["http://localhost:3000", "http://localhost:3001", "https://study-material-generator.netlify.app"]
     
     # AI Service
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")

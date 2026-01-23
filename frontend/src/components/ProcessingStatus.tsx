@@ -20,6 +20,7 @@ const STEP_LABELS: Record<ProcessingStep, string> = {
   [ProcessingStep.GENERATING_MNEMONICS]: "Creating Mnemonics",
   [ProcessingStep.GENERATING_CHEAT_SHEETS]: "Creating Cheat Sheets",
   [ProcessingStep.GENERATING_NOTES]: "Compiling Notes",
+  [ProcessingStep.GENERATING_FLASHCARDS]: "Creating Flashcards",
   [ProcessingStep.FINALIZING]: "Finalizing",
   [ProcessingStep.COMPLETED]: "Completed",
   [ProcessingStep.FAILED]: "Failed"
@@ -35,6 +36,7 @@ const STEP_ICONS: Record<ProcessingStep, string> = {
   [ProcessingStep.GENERATING_MNEMONICS]: "🧠",
   [ProcessingStep.GENERATING_CHEAT_SHEETS]: "📋",
   [ProcessingStep.GENERATING_NOTES]: "📖",
+  [ProcessingStep.GENERATING_FLASHCARDS]: "🎴",
   [ProcessingStep.FINALIZING]: "✨",
   [ProcessingStep.COMPLETED]: "🎉",
   [ProcessingStep.FAILED]: "❌"

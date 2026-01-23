@@ -9,6 +9,9 @@ An AI-powered study companion for medical students that transforms study materia
 - **Multi-Format Upload**: PDF documents, images, scanned notes
 - **Topic-Based Generation**: Enter any topic to generate study materials
 - **5 Output Types**: Questions, Mock Tests, Mnemonics, Cheat Sheets, Notes
+- **📚 Flashcard Generator**: AI-powered flashcards with spaced repetition
+- **📅 Study Planner**: Personalized study schedules with progress tracking
+- **📥 Export Functions**: Download content as PDF, JSON, or images
 - **Session History**: All generated content saved and retrievable
 - **Mobile OTP Authentication**: Secure user-based sessions
 - **Interactive Mock Tests**: Take timed tests with auto-scoring and analytics
@@ -100,18 +103,29 @@ flowchart TD
     Generate --> Mnemonics[🧠 Mnemonics]
     Generate --> CheatSheets[📋 Cheat Sheets]
     Generate --> Notes[📚 Notes]
+    Generate --> Flashcards[🃏 Flashcards]
     
     Questions --> Results[Results Viewer]
     MockTests --> Results
     Mnemonics --> Results
     CheatSheets --> Results
     Notes --> Results
+    Flashcards --> FlashcardReview[Flashcard Review System]
     
     Results --> Actions{User Action}
     Actions -->|Take Test| TestInterface[Mock Test Interface]
+    Actions -->|Study Plan| StudyPlanner[Study Planner]
     Actions -->|Download| Export[Export Content]
     Actions -->|New Session| Dashboard
     Actions -->|View History| History[Session History]
+    
+    FlashcardReview --> SpacedRepetition[Spaced Repetition Algorithm]
+    SpacedRepetition --> Results
+    
+    StudyPlanner --> PlanGeneration[AI Plan Generation]
+    PlanGeneration --> DailySchedule[Daily Study Schedule]
+    DailySchedule --> ProgressTracking[Progress Tracking]
+    ProgressTracking --> Results
     
     TestInterface --> TestResults[Test Results & Analytics]
     TestResults --> Results
@@ -335,12 +349,53 @@ mindmap
         Organized Content
         Searchable Format
         Export Options
+      Flashcards
+        AI Generated
+        Spaced Repetition
+        Difficulty Rating
+        Progress Tracking
+        Review Analytics
+    Study Planning
+      AI Plan Generation
+        Personalized Schedules
+        Daily Task Breakdown
+        Subject Distribution
+        Progress Tracking
+      Task Management
+        Completion Tracking
+        Status Updates
+        Priority Levels
+        Time Estimation
+      Progress Analytics
+        Completion Rates
+        Study Streaks
+        Performance Metrics
+        Visual Charts
+    Export System
+      PDF Generation
+        Custom Styling
+        Professional Layout
+        Multiple Content Types
+        Batch Export
+      JSON Export
+        Data Portability
+        API Integration
+        Structured Format
+        Backup Support
+      Image Export
+        Visual Content
+        Social Sharing
+        Print Ready
+        High Quality
     User Experience
       Responsive Design
       Drag Drop Upload
       Real Time Progress
       Session History
       Error Handling
+      Interactive UI
+      Mobile Optimized
+      Accessibility
 ```
 
 ## 📊 Data Flow Architecture
@@ -439,12 +494,14 @@ stateDiagram-v2
         [*] --> MnemonicGen: Generate Mnemonics
         [*] --> CheatSheetGen: Generate Cheat Sheets
         [*] --> NotesGen: Generate Notes
+        [*] --> FlashcardGen: Generate Flashcards
         
         QuestionGen --> QuestionsReady
         MockTestGen --> MockTestsReady
         MnemonicGen --> MnemonicsReady
         CheatSheetGen --> CheatSheetsReady
         NotesGen --> NotesReady
+        FlashcardGen --> FlashcardsReady
     }
     
     QuestionsReady --> ResultsCompilation
@@ -452,10 +509,128 @@ stateDiagram-v2
     MnemonicsReady --> ResultsCompilation
     CheatSheetsReady --> ResultsCompilation
     NotesReady --> ResultsCompilation
+    FlashcardsReady --> ResultsCompilation
     
     ResultsCompilation --> SessionSaved: Save to database
     SessionSaved --> ResultsDisplay: Display to user
     ResultsDisplay --> [*]: Session complete
+```
+
+## 🃏 Flashcard System Flow
+
+```mermaid
+flowchart TD
+    SessionContent[Session Content] --> FlashcardGen[AI Flashcard Generator]
+    
+    FlashcardGen --> CreateCards[Create Flashcards]
+    CreateCards --> StoreDB[(Store in Database)]
+    
+    StoreDB --> UserAccess[User Access Flashcards]
+    UserAccess --> ReviewInterface[Flashcard Review Interface]
+    
+    ReviewInterface --> ShowQuestion[Show Question]
+    ShowQuestion --> UserThinks[User Thinks]
+    UserThinks --> RevealAnswer[Reveal Answer]
+    
+    RevealAnswer --> UserRating{User Rates Difficulty}
+    UserRating -->|Easy| EasySchedule[Next Review: 4 days]
+    UserRating -->|Medium| MediumSchedule[Next Review: 2 days]
+    UserRating -->|Hard| HardSchedule[Next Review: 1 day]
+    
+    EasySchedule --> UpdateSpacing[Update Spaced Repetition]
+    MediumSchedule --> UpdateSpacing
+    HardSchedule --> UpdateSpacing
+    
+    UpdateSpacing --> NextCard{More Cards?}
+    NextCard -->|Yes| ShowQuestion
+    NextCard -->|No| SessionComplete[Review Session Complete]
+    
+    SessionComplete --> Analytics[Show Progress Analytics]
+    Analytics --> UserAccess
+```
+
+## 📅 Study Planner Flow
+
+```mermaid
+flowchart TD
+    UserInput[User Inputs Plan Config] --> ConfigValidation{Valid Config?}
+    ConfigValidation -->|No| ShowError[Show Validation Error]
+    ShowError --> UserInput
+    
+    ConfigValidation -->|Yes| GatherContent[Gather Session Content]
+    GatherContent --> ContentAnalysis[Analyze Available Content]
+    
+    ContentAnalysis --> AIPlanning[AI Study Plan Generation]
+    
+    AIPlanning --> BasicPlan[Generate Basic Plan Structure]
+    BasicPlan --> WeeklySchedules[Generate Weekly Schedules]
+    WeeklySchedules --> DailyTasks[Convert to Daily Tasks]
+    
+    DailyTasks --> TaskValidation[Validate Tasks & Subjects]
+    TaskValidation --> CreatePlan[Create StudyPlan Object]
+    
+    CreatePlan --> SaveDB[(Save to Database)]
+    SaveDB --> InitProgress[Initialize Progress Tracking]
+    
+    InitProgress --> DisplayPlan[Display Study Plan]
+    DisplayPlan --> UserInteraction{User Action}
+    
+    UserInteraction -->|Mark Complete| UpdateTask[Update Task Status]
+    UserInteraction -->|View Progress| ShowProgress[Show Progress Analytics]
+    UserInteraction -->|Modify Plan| EditPlan[Edit Plan Settings]
+    
+    UpdateTask --> RecalculateProgress[Recalculate Progress]
+    RecalculateProgress --> SaveProgress[(Update Progress DB)]
+    SaveProgress --> DisplayPlan
+    
+    ShowProgress --> ProgressCharts[Show Charts & Stats]
+    ProgressCharts --> DisplayPlan
+    
+    EditPlan --> UserInput
+```
+
+## 📥 Export System Flow
+
+```mermaid
+flowchart TD
+    UserRequest[User Requests Export] --> SelectContent{Select Content Type}
+    
+    SelectContent -->|Questions| ExportQuestions[Export Questions]
+    SelectContent -->|Flashcards| ExportFlashcards[Export Flashcards]
+    SelectContent -->|Notes| ExportNotes[Export Notes]
+    SelectContent -->|Cheat Sheets| ExportCheatSheets[Export Cheat Sheets]
+    SelectContent -->|Mnemonics| ExportMnemonics[Export Mnemonics]
+    SelectContent -->|Study Plan| ExportStudyPlan[Export Study Plan]
+    
+    ExportQuestions --> FormatChoice{Choose Format}
+    ExportFlashcards --> FormatChoice
+    ExportNotes --> FormatChoice
+    ExportCheatSheets --> FormatChoice
+    ExportMnemonics --> FormatChoice
+    ExportStudyPlan --> FormatChoice
+    
+    FormatChoice -->|PDF| GeneratePDF[Generate PDF Document]
+    FormatChoice -->|JSON| GenerateJSON[Generate JSON Export]
+    FormatChoice -->|Image| GenerateImage[Generate Image Export]
+    
+    GeneratePDF --> PDFStyling[Apply Custom PDF Styling]
+    PDFStyling --> TempFile[Create Temporary File]
+    
+    GenerateJSON --> JSONFormat[Format as JSON]
+    JSONFormat --> TempFile
+    
+    GenerateImage --> ImageGeneration[Generate Image]
+    ImageGeneration --> TempFile
+    
+    TempFile --> FileValidation{File Created?}
+    FileValidation -->|No| ExportError[Show Export Error]
+    FileValidation -->|Yes| ServeFile[Serve File for Download]
+    
+    ServeFile --> CleanupFile[Schedule File Cleanup]
+    CleanupFile --> DownloadComplete[Download Complete]
+    
+    ExportError --> UserRequest
+    DownloadComplete --> UserRequest
 ```
 
 ## 💻 Tech Stack
@@ -710,7 +885,16 @@ EMAIL_TEMPLATE_PATH=./templates/emails/
 | `/api/v1/auth/login` | POST | Login with mobile + password |
 | `/api/v1/upload/` | POST | Upload files for processing |
 | `/api/v1/text-input/` | POST | Generate from topic text |
-| `/api/v1/history/sessions` | GET | Get user's session history |
+| `/api/v1/flashcards/{session_id}` | GET | Get session flashcards |
+| `/api/v1/study-planner/generate-plan` | POST | Generate AI study plan |
+| `/api/v1/download/{type}/{id}` | GET | Export/download content |
+| `/api/v1/sessions` | GET | Get user's session history |
+
+📖 **[Complete API Documentation](docs/API_DOCUMENTATION.md)** - Detailed endpoints, request/response formats, and examples
+
+📚 **[Backend Documentation](docs/BACKEND_DOCUMENTATION.md)** - Architecture, services, database schema, and deployment
+
+🎨 **[Frontend Documentation](docs/FRONTEND_DOCUMENTATION.md)** - Components, state management, styling, and testing
 
 ## 🛠️ Kiro Development
 
