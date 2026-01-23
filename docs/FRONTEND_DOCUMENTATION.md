@@ -1,630 +1,722 @@
-# Frontend Documentation - Study Buddy App
+# StudyBuddy Frontend Documentation
 
-## Overview
+## Architecture Overview
 
-The Study Buddy frontend is built with Next.js 14, React 18, TypeScript, and TailwindCSS. It provides a modern, responsive interface for medical students to upload study materials and generate AI-powered study resources.
+The StudyBuddy frontend is built using Next.js 14 with React 18, featuring a modern component-based architecture with three core new functionalities:
 
-## Architecture
+1. **Flashcard Review System** - Interactive flashcard interface with spaced repetition
+2. **Study Planner Interface** - Visual study plan management and progress tracking
+3. **Export Components** - Multi-format content export functionality
 
-### Tech Stack
-- **Framework**: Next.js 14 with App Router
-- **Language**: TypeScript
-- **Styling**: TailwindCSS
-- **State Management**: React Context API
-- **HTTP Client**: Fetch API
-- **Authentication**: JWT with OTP verification
-
-### Directory Structure
+## Project Structure
 
 ```
-frontend/src/
-├── app/                    # Next.js App Router pages
-│   ├── layout.tsx         # Root layout with providers
-│   ├── page.tsx           # Home page with Study Buddy card
-│   ├── login/             # Login page
-│   ├── register/          # Registration page
-│   └── study-buddy/       # Study Buddy main page
-├── components/            # React components
-│   ├── AuthForm.tsx       # Authentication form
-│   ├── FileUpload.tsx     # File upload with drag-and-drop
-│   ├── Header.tsx         # Navigation header
-│   ├── InteractiveQuestion.tsx  # Question display component
-│   ├── MockTestDialog.tsx # Mock test modal
-│   ├── MockTestInterface.tsx    # Mock test UI
-│   ├── MockTestResults.tsx      # Test results display
-│   ├── ProcessingStatus.tsx     # Progress indicator
-│   ├── ResultsViewer.tsx        # Main results container
-│   └── SessionHistory.tsx       # Session history viewer
-├── contexts/              # React contexts
-│   └── AuthContext.tsx    # Authentication state management
-├── lib/                   # Utilities and API clients
-│   ├── api.ts            # Generic API utilities
-│   └── studybuddy-api.ts # Study Buddy specific API calls
-├── types/                 # TypeScript type definitions
-│   └── api.ts            # API response types
-└── utils/                 # Helper functions
-    └── errorLogger.ts     # Error logging utility
+frontend/
+├── src/
+│   ├── app/                      # Next.js App Router
+│   │   ├── layout.tsx           # Root layout
+│   │   ├── page.tsx             # Home page
+│   │   ├── docs/                # API documentation page
+│   │   ├── study-buddy/         # Main application
+│   │   ├── study-planner/       # Study planner feature
+│   │   ├── login/               # Authentication
+│   │   └── register/            # User registration
+│   │
+│   ├── components/              # React Components
+│   │   ├── ui/                  # Base UI components
+│   │   ├── FileUpload.tsx       # File upload interface
+│   │   ├── ResultsViewer.tsx    # Main results container
+│   │   ├── StudyPlanForm.tsx    # Study plan configuration
+│   │   ├── StudyPlannerViewer.tsx # Study plan display
+│   │   ├── ExportButton.tsx     # Export functionality
+│   │   ├── MockTestInterface.tsx # Interactive testing
+│   │   └── Header.tsx           # Navigation header
+│   │
+│   ├── contexts/                # React Context
+│   │   └── AuthContext.tsx      # Authentication state
+│   │
+│   ├── lib/                     # Utilities
+│   │   ├── studybuddy-api.ts    # API client
+│   │   └── utils.ts             # Helper functions
+│   │
+│   ├── types/                   # TypeScript definitions
+│   │   └── api.ts               # API response types
+│   │
+│   └── styles/                  # Global styles
+│       └── globals.css          # Tailwind CSS
 ```
 
-## Core Components
+## Core Features Implementation
 
-### 1. Authentication System
+### 1. Flashcard Review System
 
-#### AuthContext (`src/contexts/AuthContext.tsx`)
-Manages global authentication state using React Context.
-
-**Features:**
-- JWT token management
-- User session persistence
-- Login/logout functionality
-- OTP verification flow
-
-**Key Methods:**
+#### Component Structure
 ```typescript
-interface AuthContextType {
-  user: User | null;
-  login: (mobile: string, password: string) => Promise<void>;
-  register: (mobile: string, password: string, otp: string) => Promise<void>;
-  logout: () => void;
-  sendOTP: (mobile: string) => Promise<void>;
-  verifyOTP: (mobile: string, otp: string) => Promise<void>;
-}
-```
-
-#### AuthForm (`src/components/AuthForm.tsx`)
-Reusable authentication form component supporting both login and registration.
-
-**Props:**
-- `mode`: 'login' | 'register'
-- `onSuccess`: Callback function on successful authentication
-
-### File Upload System
-
-#### FileUpload (`src/components/FileUpload.tsx`)
-Advanced file upload component with drag-and-drop support.
-
-**Features:**
-- Drag and drop interface
-- Multiple file selection
-- File type validation (PDF, JPG, PNG, PPTX)
-- File size validation (configurable, default: 50MB)
-- Upload progress tracking
-- Preview of selected files
-- Error handling with user-friendly messages
-
-**Configuration Options:**
-```typescript
-interface FileUploadConfig {
-  maxFileSize: number;        // Maximum file size in bytes
-  maxFiles: number;           // Maximum number of files
-  allowedTypes: string[];     // Allowed file extensions
-  enableDragDrop: boolean;    // Enable drag and drop
-  showPreview: boolean;       // Show file preview
-  enableProgress: boolean;    // Show upload progress
-}
-```
-
-**Supported File Types:**
-- PDF documents (`.pdf`)
-- Images (`.jpg`, `.jpeg`, `.png`)
-- PowerPoint presentations (`.pptx`)
-
-**File Size Limits:**
-- Default: 50MB per file
-- Configurable via environment variables
-- Real-time validation with error messages
-
-**Upload Features:**
-- Batch file upload
-- Progress tracking per file
-- Error recovery and retry
-- Automatic file type detection
-- Email notification opt-in checkbox
-
-**Email Notification Integration:**
-```typescript
-interface UploadOptions {
-  files: File[];
-  sessionName?: string;
-  notifyByEmail?: boolean;
-  userEmail?: string;
+// Flashcard display and interaction
+interface FlashcardProps {
+  flashcard: Flashcard;
+  onReview: (difficulty: 'easy' | 'medium' | 'hard') => void;
+  showAnswer: boolean;
+  onToggleAnswer: () => void;
 }
 
-const FileUpload: React.FC = () => {
-  const [notifyByEmail, setNotifyByEmail] = useState(false);
-  const { user } = useAuth();
+const FlashcardComponent: React.FC<FlashcardProps> = ({
+  flashcard,
+  onReview,
+  showAnswer,
+  onToggleAnswer
+}) => {
+  // Interactive flashcard with flip animation
+  // Difficulty rating buttons
+  // Progress tracking
+};
+```
+
+#### Integration in ResultsViewer
+```typescript
+const ResultsViewer: React.FC = () => {
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   
-  const handleUpload = async () => {
-    const options: UploadOptions = {
-      files: selectedFiles,
-      sessionName: sessionName,
-      notifyByEmail: notifyByEmail,
-      userEmail: user?.email
-    };
-    
-    await uploadFiles(options);
-    
-    if (notifyByEmail) {
-      toast.success("You'll receive an email when processing is complete!");
+  const handleFlashcardReview = async (difficulty: string) => {
+    // Call API to record review
+    // Update spaced repetition schedule
+    // Move to next flashcard
+  };
+  
+  return (
+    <div className="flashcard-container">
+      {/* Flashcard display */}
+      {/* Navigation controls */}
+      {/* Progress indicators */}
+    </div>
+  );
+};
+```
+
+### 2. Study Planner Interface
+
+#### Study Plan Form Component
+```typescript
+interface StudyPlanFormProps {
+  sessionId: string;
+  onPlanGenerated: (plan: StudyPlan) => void;
+}
+
+const StudyPlanForm: React.FC<StudyPlanFormProps> = ({
+  sessionId,
+  onPlanGenerated
+}) => {
+  const [config, setConfig] = useState<StudyPlanConfig>({
+    exam_date: '',
+    daily_study_hours: 6,
+    weak_areas: []
+  });
+  
+  const handleSubmit = async () => {
+    // Validate form data
+    // Call study planner API
+    // Handle loading states
+    // Display generated plan
+  };
+  
+  return (
+    <form className="study-plan-form">
+      {/* Date picker for exam date */}
+      {/* Slider for daily study hours */}
+      {/* Multi-select for weak areas */}
+      {/* Submit button with loading state */}
+    </form>
+  );
+};
+```
+
+#### Study Plan Viewer Component
+```typescript
+const StudyPlannerViewer: React.FC<{ plan: StudyPlan }> = ({ plan }) => {
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [tasks, setTasks] = useState<StudyTask[]>([]);
+  
+  const updateTaskStatus = async (taskId: string, status: TaskStatus) => {
+    // Call API to update task
+    // Update local state
+    // Recalculate progress
+  };
+  
+  return (
+    <div className="study-planner-viewer">
+      {/* Calendar view */}
+      {/* Daily task list */}
+      {/* Progress charts */}
+      {/* Task completion controls */}
+    </div>
+  );
+};
+```
+
+### 3. Export Components
+
+#### Export Button Component
+```typescript
+interface ExportButtonProps {
+  contentType: 'questions' | 'flashcards' | 'notes' | 'study_plan';
+  contentId: string;
+  format?: 'pdf' | 'json';
+  className?: string;
+}
+
+const ExportButton: React.FC<ExportButtonProps> = ({
+  contentType,
+  contentId,
+  format = 'pdf',
+  className
+}) => {
+  const [isExporting, setIsExporting] = useState(false);
+  
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      // Call download API
+      // Handle file download
+      // Show success message
+    } catch (error) {
+      // Handle export errors
+      // Show error message
+    } finally {
+      setIsExporting(false);
     }
   };
   
   return (
-    <div>
-      {/* File upload interface */}
-      
-      <div className="notification-option">
-        <input
-          type="checkbox"
-          id="email-notify"
-          checked={notifyByEmail}
-          onChange={(e) => setNotifyByEmail(e.target.checked)}
-        />
-        <label htmlFor="email-notify">
-          📧 Email me when processing is complete
-        </label>
-        <p className="text-sm text-gray-600">
-          Get notified when your study materials are ready (processing may take 2-5 minutes)
-        </p>
-      </div>
-    </div>
+    <button
+      onClick={handleExport}
+      disabled={isExporting}
+      className={`export-button ${className}`}
+    >
+      {isExporting ? 'Exporting...' : `Export ${format.toUpperCase()}`}
+    </button>
   );
 };
-```
-
-### 3. Processing System
-
-#### ProcessingStatus (`src/components/ProcessingStatus.tsx`)
-Real-time processing status display with progress tracking.
-
-**Features:**
-- Progress bar with percentage
-- Current processing step display
-- Estimated completion time
-- Error handling and retry options
-- Email notification status display
-
-**Processing Steps:**
-1. File upload validation
-2. Text extraction
-3. AI content generation
-4. Results compilation
-5. Email notification (if opted-in)
-
-**Email Notification Integration:**
-```typescript
-const ProcessingStatus: React.FC<{ sessionId: string; emailNotification: boolean }> = ({ sessionId, emailNotification }) => {
-  const [status, setStatus] = useState<ProcessingStatus>();
-  
-  useEffect(() => {
-    const pollStatus = async () => {
-      const response = await getProcessingStatus(sessionId);
-      setStatus(response);
-      
-      if (response.status === 'completed' && emailNotification) {
-        toast.success("✅ Processing complete! Check your email for notification.");
-      }
-    };
-    
-    const interval = setInterval(pollStatus, 2000);
-    return () => clearInterval(interval);
-  }, [sessionId, emailNotification]);
-  
-  return (
-    <div className="processing-status">
-      <div className="progress-bar">
-        <div style={{ width: `${status?.progress}%` }} />
-      </div>
-      
-      <p>{status?.current_step}</p>
-      
-      {emailNotification && (
-        <div className="email-notification-status">
-          <span>📧 Email notification enabled</span>
-          <p className="text-sm">You'll be notified when processing is complete</p>
-        </div>
-      )}
-    </div>
-  );
-};
-```
-
-**Processing Steps:**
-1. File upload validation
-2. Text extraction
-3. AI content generation
-4. Results compilation
-
-### 4. Results Display System
-
-#### ResultsViewer (`src/components/ResultsViewer.tsx`)
-Main container for displaying all generated study materials.
-
-**Features:**
-- Tabbed interface for different content types
-- Search and filter functionality
-- Export options
-- Responsive design
-
-**Content Types:**
-- Questions (MCQs with explanations)
-- Mock Tests (Timed assessments)
-- Mnemonics (Memory aids)
-- Cheat Sheets (Key points summary)
-- Notes (Compiled study materials)
-
-#### InteractiveQuestion (`src/components/InteractiveQuestion.tsx`)
-Individual question display component with interactive features.
-
-**Features:**
-- Multiple choice options
-- Answer selection
-- Explanation display
-- Difficulty indicators
-- Subject categorization
-
-### 5. Mock Test System
-
-#### MockTestInterface (`src/components/MockTestInterface.tsx`)
-Complete mock test taking interface.
-
-**Features:**
-- Timer functionality with countdown display
-- Question navigation with progress indicator
-- Answer selection and tracking
-- Mark questions for review
-- Auto-submit on time completion
-- Pause and resume capability
-- Progress indicators and question status
-
-**Key Methods:**
-```typescript
-interface MockTestInterface {
-  startTest: (testId: string) => void;
-  answerQuestion: (questionId: string, answer: string) => void;
-  markForReview: (questionId: string) => void;
-  navigateToQuestion: (index: number) => void;
-  submitTest: () => Promise<TestResult>;
-  pauseTest: () => void;
-  resumeTest: () => void;
-}
-```
-
-#### MockTestResults (`src/components/MockTestResults.tsx`)
-Detailed test results and analytics.
-
-**Features:**
-- Score calculation and percentage display
-- Question-wise analysis with explanations
-- Performance metrics and time tracking
-- Subject-wise breakdown
-- Retry options and improvement suggestions
-- Detailed analytics charts
-
-**Analytics Displayed:**
-- Overall score and percentage
-- Time per question analysis
-- Subject-wise performance
-- Difficulty level breakdown
-- Improvement areas identification
-
-#### Test Configuration Options
-```typescript
-interface TestConfig {
-  duration: number;           // Test duration in minutes
-  questionsCount: number;     // Number of questions (default: 25)
-  allowReview: boolean;       // Allow marking for review
-  showTimer: boolean;         // Display countdown timer
-  autoSubmit: boolean;        // Auto-submit on time completion
-  allowRetry: boolean;        // Allow retaking the test
-  shuffleQuestions: boolean;  // Randomize question order
-}
-```
-
-### 6. Session Management
-
-#### SessionHistory (`src/components/SessionHistory.tsx`)
-Display and manage previous study sessions.
-
-**Features:**
-- Session list with metadata
-- Search and filter options
-- Session deletion
-- Quick access to results
-
-## API Integration
-
-### StudyBuddy API Client (`src/lib/studybuddy-api.ts`)
-
-**Core Functions:**
-
-```typescript
-// File upload
-export const uploadFiles = async (files: File[], sessionName?: string): Promise<UploadResponse>
-
-// Text input processing
-export const processTextInput = async (text: string, sessionName?: string): Promise<ProcessResponse>
-
-// Get processing status
-export const getProcessingStatus = async (sessionId: string): Promise<StatusResponse>
-
-// Fetch results
-export const getSessionResults = async (sessionId: string): Promise<SessionResults>
-
-// Get session history
-export const getSessionHistory = async (): Promise<SessionHistoryResponse>
-
-// Delete session
-export const deleteSession = async (sessionId: string): Promise<void>
-```
-
-### Authentication API (`src/lib/api.ts`)
-
-```typescript
-// Send OTP
-export const sendOTP = async (mobile: string): Promise<void>
-
-// Verify OTP
-export const verifyOTP = async (mobile: string, otp: string): Promise<void>
-
-// Login
-export const login = async (mobile: string, password: string): Promise<LoginResponse>
-
-// Register
-export const register = async (mobile: string, password: string, otp: string): Promise<RegisterResponse>
 ```
 
 ## State Management
 
-### Authentication State
-Managed through React Context with localStorage persistence.
-
+### Authentication Context
 ```typescript
-interface AuthState {
+interface AuthContextType {
   user: User | null;
-  token: string | null;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
+  logout: () => void;
   isLoading: boolean;
-  error: string | null;
 }
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Authentication logic
+  // Token management
+  // Auto-refresh handling
+  
+  return (
+    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 ```
 
-### Component State
-Individual components manage their own state using React hooks:
-- `useState` for local component state
-- `useEffect` for side effects and API calls
-- Custom hooks for reusable logic
+### Session State Management
+```typescript
+// Custom hook for session management
+const useSession = (sessionId: string) => {
+  const [session, setSession] = useState<StudySession | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const refreshSession = useCallback(async () => {
+    // Fetch session data
+    // Update state
+  }, [sessionId]);
+  
+  useEffect(() => {
+    refreshSession();
+  }, [refreshSession]);
+  
+  return { session, loading, error, refreshSession };
+};
+```
 
-## Styling System
+## API Integration
 
-### TailwindCSS Configuration
-Custom configuration in `tailwind.config.js`:
-
-```javascript
-module.exports = {
-  content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
-  theme: {
-    extend: {
-      colors: {
-        primary: '#3B82F6',
-        secondary: '#10B981',
-        accent: '#F59E0B'
-      }
+### API Client Configuration
+```typescript
+// lib/studybuddy-api.ts
+class StudyBuddyAPI {
+  private baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  private token: string | null = null;
+  
+  setAuthToken(token: string) {
+    this.token = token;
+  }
+  
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseURL}/api/v1${endpoint}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(this.token && { Authorization: `Bearer ${this.token}` }),
+      ...options.headers,
+    };
+    
+    const response = await fetch(url, { ...options, headers });
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
     }
+    
+    return response.json();
+  }
+  
+  // Flashcard methods
+  async getFlashcards(sessionId: string, skip = 0, limit = 50) {
+    return this.request<FlashcardListResponse>(
+      `/flashcards/${sessionId}?skip=${skip}&limit=${limit}`
+    );
+  }
+  
+  async reviewFlashcard(flashcardId: string, review: FlashcardReview) {
+    return this.request(`/flashcards/${flashcardId}/review`, {
+      method: 'POST',
+      body: JSON.stringify(review),
+    });
+  }
+  
+  // Study planner methods
+  async generateStudyPlan(request: StudyPlanRequest) {
+    return this.request<StudyPlanResponse>('/study-planner/generate-plan', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+  
+  async updateTaskStatus(taskId: string, status: TaskStatus) {
+    return this.request(`/study-planner/tasks/${taskId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+  
+  // Export methods
+  async downloadContent(contentType: string, contentId: string, format = 'pdf') {
+    const response = await fetch(
+      `${this.baseURL}/api/v1/download/${contentType}/${contentId}?format=${format}`,
+      {
+        headers: {
+          ...(this.token && { Authorization: `Bearer ${this.token}` }),
+        },
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+    
+    return response.blob();
   }
 }
+
+export const api = new StudyBuddyAPI();
 ```
 
+## Component Flow Diagrams
+
+### Flashcard Review Flow
+```mermaid
+flowchart TD
+    A[User clicks Flashcards tab] --> B[Load flashcards from API]
+    B --> C[Display first flashcard]
+    C --> D[User reads question]
+    D --> E[User clicks 'Show Answer']
+    E --> F[Reveal answer with animation]
+    F --> G[User rates difficulty]
+    G --> H[Send review to API]
+    H --> I[Update spaced repetition]
+    I --> J{More cards?}
+    J -->|Yes| K[Load next card]
+    J -->|No| L[Show completion summary]
+    K --> C
+    L --> M[Return to results view]
+```
+
+### Study Plan Generation Flow
+```mermaid
+flowchart TD
+    A[User clicks Study Planner] --> B[Show configuration form]
+    B --> C[User fills exam date]
+    C --> D[User sets daily hours]
+    D --> E[User selects weak areas]
+    E --> F[User clicks Generate Plan]
+    F --> G[Show loading spinner]
+    G --> H[Call AI generation API]
+    H --> I{API Success?}
+    I -->|Yes| J[Display generated plan]
+    I -->|No| K[Show error message]
+    J --> L[User views daily tasks]
+    L --> M[User marks tasks complete]
+    M --> N[Update progress tracking]
+    N --> O[Sync with backend]
+    K --> B
+```
+
+### Export System Flow
+```mermaid
+flowchart TD
+    A[User clicks Export button] --> B[Show format options]
+    B --> C[User selects PDF/JSON]
+    C --> D[Show loading state]
+    D --> E[Call download API]
+    E --> F{Export Success?}
+    F -->|Yes| G[Download file to device]
+    F -->|No| H[Show error message]
+    G --> I[Show success notification]
+    H --> J[Allow retry]
+    I --> K[Return to content view]
+    J --> B
+```
+
+## Styling & UI
+
 ### Design System
-- **Colors**: Blue primary, green secondary, amber accent
-- **Typography**: System fonts with proper hierarchy
-- **Spacing**: Consistent 4px grid system
-- **Components**: Reusable utility classes
+```css
+/* globals.css - Design tokens */
+:root {
+  /* Colors */
+  --primary-pink: #ec4899;
+  --primary-fuchsia: #d946ef;
+  --secondary-blue: #3b82f6;
+  --success-green: #10b981;
+  --warning-orange: #f59e0b;
+  --error-red: #ef4444;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--primary-pink), var(--primary-fuchsia));
+  --gradient-secondary: linear-gradient(135deg, #667eea, #764ba2);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  
+  /* Border radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
 
-## Error Handling
+/* Component classes */
+.btn-primary {
+  @apply bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-pink-200/50 hover:shadow-xl hover:shadow-pink-300/50 transition-all duration-300;
+}
 
-### Error Logger (`src/utils/errorLogger.ts`)
-Centralized error logging and reporting system.
+.btn-secondary {
+  @apply bg-white text-gray-700 border border-gray-200 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all duration-300;
+}
 
-**Features:**
-- Client-side error capture
-- API error handling
-- User-friendly error messages
-- Error reporting to backend
+.glass-card {
+  @apply bg-white/80 backdrop-blur-sm border border-pink-100 rounded-2xl shadow-lg shadow-pink-100/50;
+}
 
-### Error Boundaries
-React error boundaries for graceful error handling:
-- Component-level error catching
-- Fallback UI display
-- Error reporting
+.gradient-text {
+  @apply bg-gradient-to-r from-pink-500 to-fuchsia-500 bg-clip-text text-transparent;
+}
+```
+
+### Responsive Design
+```typescript
+// Responsive breakpoints
+const breakpoints = {
+  sm: '640px',
+  md: '768px',
+  lg: '1024px',
+  xl: '1280px',
+  '2xl': '1536px',
+};
+
+// Mobile-first approach
+const ResponsiveComponent: React.FC = () => {
+  return (
+    <div className="
+      grid grid-cols-1 gap-4
+      md:grid-cols-2 md:gap-6
+      lg:grid-cols-3 lg:gap-8
+      xl:grid-cols-4
+    ">
+      {/* Responsive grid content */}
+    </div>
+  );
+};
+```
 
 ## Performance Optimization
 
 ### Code Splitting
-- Route-based code splitting with Next.js
-- Dynamic imports for heavy components
-- Lazy loading of non-critical features
-
-### Caching Strategy
-- API response caching
-- Image optimization with Next.js
-- Static asset caching
-
-### Bundle Optimization
-- Tree shaking for unused code
-- Minification and compression
-- Optimal chunk splitting
-
-## Security Measures
-
-### Rate Limiting
-Client-side rate limiting awareness and handling.
-
-**Features:**
-- Request throttling detection
-- User-friendly rate limit messages
-- Automatic retry with backoff
-- Progress indicators during rate limits
-
-**Rate Limit Handling:**
 ```typescript
-class RateLimitHandler {
-  private retryAfter: number = 0;
-  
-  async handleRateLimit(error: AxiosError): Promise<void> {
-    if (error.response?.status === 429) {
-      const retryAfter = error.response.headers['retry-after'];
-      this.retryAfter = parseInt(retryAfter) * 1000;
-      
-      // Show user-friendly message
-      toast.warning(`Rate limit exceeded. Please wait ${retryAfter} seconds.`);
-      
-      // Wait and retry
-      await this.waitAndRetry();
-    }
+// Lazy loading for heavy components
+const StudyPlannerViewer = lazy(() => import('./StudyPlannerViewer'));
+const MockTestInterface = lazy(() => import('./MockTestInterface'));
+
+// Usage with Suspense
+<Suspense fallback={<LoadingSpinner />}>
+  <StudyPlannerViewer plan={studyPlan} />
+</Suspense>
+```
+
+### Memoization
+```typescript
+// Memoized components for performance
+const FlashcardComponent = memo<FlashcardProps>(({ flashcard, onReview }) => {
+  // Component implementation
+});
+
+// Memoized calculations
+const studyProgress = useMemo(() => {
+  return calculateProgress(tasks, completedTasks);
+}, [tasks, completedTasks]);
+
+// Memoized callbacks
+const handleTaskUpdate = useCallback((taskId: string, status: TaskStatus) => {
+  updateTaskStatus(taskId, status);
+}, [updateTaskStatus]);
+```
+
+### Image Optimization
+```typescript
+import Image from 'next/image';
+
+// Optimized images with Next.js
+<Image
+  src="/images/study-illustration.png"
+  alt="Study illustration"
+  width={400}
+  height={300}
+  priority={true}
+  className="rounded-xl"
+/>
+```
+
+## Error Handling
+
+### Error Boundary
+```typescript
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
   }
   
-  private async waitAndRetry(): Promise<void> {
-    return new Promise(resolve => {
-      setTimeout(resolve, this.retryAfter);
-    });
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+    // Log to error reporting service
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="error-fallback">
+          <h2>Something went wrong</h2>
+          <button onClick={() => this.setState({ hasError: false })}>
+            Try again
+          </button>
+        </div>
+      );
+    }
+    
+    return this.props.children;
   }
 }
 ```
 
-### File Upload Security
-- Client-side file validation
-- File type verification
-- Size limit enforcement
-- Malicious file detection
-
-### API Security
-- JWT token management
-- Automatic token refresh
-- Secure API endpoints
-- Request authentication headers
-
-## Testing Strategy
-
-### Unit Testing
-- Component testing with React Testing Library
-- Hook testing with custom test utilities
-- API client testing with mocked responses
-
-### Integration Testing
-- End-to-end user flows
-- API integration testing
-- Authentication flow testing
-
-### Performance Testing
-- Bundle size monitoring
-- Runtime performance profiling
-- Memory leak detection
-
-## Development Workflow
-
-### Local Development
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Run tests
-npm test
-
-# Build for production
-npm run build
+### API Error Handling
+```typescript
+const useApiCall = <T>(apiCall: () => Promise<T>) => {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const execute = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await apiCall();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  }, [apiCall]);
+  
+  return { data, loading, error, execute };
+};
 ```
 
-### Environment Configuration
-- `.env.local` for local development
-- `.env.example` for environment template
-- Environment-specific API endpoints
+## Testing
+
+### Component Testing
+```typescript
+// __tests__/components/ExportButton.test.tsx
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { ExportButton } from '../ExportButton';
+
+describe('ExportButton', () => {
+  it('should handle export successfully', async () => {
+    const mockDownload = jest.fn().mockResolvedValue(new Blob());
+    
+    render(
+      <ExportButton
+        contentType="questions"
+        contentId="test-id"
+        format="pdf"
+      />
+    );
+    
+    const button = screen.getByRole('button', { name: /export pdf/i });
+    fireEvent.click(button);
+    
+    await waitFor(() => {
+      expect(button).toHaveTextContent('Exporting...');
+    });
+    
+    await waitFor(() => {
+      expect(button).toHaveTextContent('Export PDF');
+    });
+  });
+});
+```
+
+### Integration Testing
+```typescript
+// __tests__/integration/StudyPlanner.test.tsx
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { StudyPlannerPage } from '../app/study-planner/page';
+
+describe('Study Planner Integration', () => {
+  it('should generate and display study plan', async () => {
+    render(<StudyPlannerPage />);
+    
+    // Fill form
+    fireEvent.change(screen.getByLabelText(/exam date/i), {
+      target: { value: '2026-02-15' }
+    });
+    
+    fireEvent.change(screen.getByLabelText(/daily hours/i), {
+      target: { value: '6' }
+    });
+    
+    // Submit form
+    fireEvent.click(screen.getByRole('button', { name: /generate plan/i }));
+    
+    // Wait for plan to be generated
+    await waitFor(() => {
+      expect(screen.getByText(/study plan generated/i)).toBeInTheDocument();
+    });
+  });
+});
+```
 
 ## Deployment
 
-### Build Process
-1. TypeScript compilation
-2. Next.js optimization
-3. Static asset generation
-4. Bundle analysis
+### Build Configuration
+```javascript
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
+  images: {
+    domains: ['localhost', 'api.studybuddy.com'],
+  },
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`,
+      },
+    ];
+  },
+};
 
-### Production Considerations
-- Environment variable configuration
-- CDN setup for static assets
-- Performance monitoring
-- Error tracking
-
-## Browser Support
-
-### Supported Browsers
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-
-### Progressive Enhancement
-- Core functionality without JavaScript
-- Graceful degradation for older browsers
-- Responsive design for all screen sizes
-
-## Accessibility
-
-### WCAG Compliance
-- Semantic HTML structure
-- Keyboard navigation support
-- Screen reader compatibility
-- Color contrast compliance
-
-### Accessibility Features
-- Alt text for images
-- ARIA labels and roles
-- Focus management
-- Skip navigation links
-
-## Future Enhancements
-
-### Planned Features
-- Offline mode support
-- Push notifications
-- Advanced analytics
-- Collaborative features
-
-### Technical Improvements
-- Service worker implementation
-- Advanced caching strategies
-- Performance optimizations
-- Enhanced error handling
-
-## Troubleshooting
-
-### Common Issues
-1. **Authentication failures**: Check token expiration and API endpoints
-2. **File upload errors**: Verify file size and type restrictions
-3. **Processing timeouts**: Check backend service status
-4. **Display issues**: Verify responsive design breakpoints
-
-### Debug Tools
-- React Developer Tools
-- Network tab for API debugging
-- Console logging for state inspection
-- Performance profiler for optimization
-
-## API Endpoints Reference
-
-### Base Configuration
-```typescript
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+module.exports = nextConfig;
 ```
 
-### Endpoint List
-- `POST /api/v1/auth/send-otp` - Send OTP
-- `POST /api/v1/auth/verify-otp` - Verify OTP
-- `POST /api/v1/auth/login` - User login
-- `POST /api/v1/auth/register` - User registration
-- `POST /api/v1/upload/` - File upload
-- `POST /api/v1/text-input/` - Text processing
-- `GET /api/v1/history/sessions` - Session history
-- `GET /api/v1/sessions/{id}/results` - Session results
-- `DELETE /api/v1/sessions/{id}` - Delete session
+### Docker Configuration
+```dockerfile
+FROM node:18-alpine AS base
+
+# Install dependencies
+FROM base AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Build application
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+# Production image
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+EXPOSE 3000
+ENV PORT 3000
+
+CMD ["node", "server.js"]
+```
+
+## Environment Configuration
+
+### Development
+```bash
+# .env.local
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_APP_NAME=StudyBuddy
+NEXT_PUBLIC_ENVIRONMENT=development
+```
+
+### Production
+```bash
+# .env.production
+NEXT_PUBLIC_API_URL=https://api.studybuddy.com
+NEXT_PUBLIC_APP_NAME=StudyBuddy
+NEXT_PUBLIC_ENVIRONMENT=production
+NEXT_PUBLIC_ANALYTICS_ID=your-analytics-id
+```

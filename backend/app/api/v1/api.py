@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, sessions, questions, mock_tests, mnemonics, cheat_sheets, notes, text_input, upload, notifications
+from app.api.v1.endpoints import auth, sessions, questions, mock_tests, mnemonics, cheat_sheets, notes, text_input, upload, notifications, flashcards, download, study_planner
 
 api_router = APIRouter()
 
@@ -13,4 +13,7 @@ api_router.include_router(mock_tests.router, prefix="/mock-tests", tags=["mock-t
 api_router.include_router(mnemonics.router, prefix="/mnemonics", tags=["mnemonics"])
 api_router.include_router(cheat_sheets.router, prefix="/cheat-sheets", tags=["cheat-sheets"])
 api_router.include_router(notes.router, prefix="/notes", tags=["notes"])
+api_router.include_router(flashcards.router, tags=["flashcards"])
+api_router.include_router(download.router, tags=["download"])
+api_router.include_router(study_planner.router, prefix="/study-planner", tags=["study-planner"])
 

@@ -1,17 +1,11 @@
 "use client";
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { FiUser, FiLogOut, FiUpload, FiZap, FiFileText, FiCpu, FiAward, FiBookOpen, FiArrowRight } from 'react-icons/fi';
+import { FiUpload, FiZap, FiFileText, FiCpu, FiAward, FiBookOpen, FiArrowRight } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
+import StudyPlannerQuickView from '@/components/StudyPlannerQuickView';
 
 export default function HomePage() {
-  const { user, logout, isLoading } = useAuth();
-  const router = useRouter();
-
-  const handleLogout = () => {
-    logout();
-    router.push('/');
-  };
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -47,38 +41,6 @@ export default function HomePage() {
 
   return (
     <div className="space-y-16">
-      {/* User Welcome Bar */}
-      {user && (
-        <div className="card animate-slide-up">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-pink-400 to-fuchsia-500 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-200/50 animate-pulse-glow">
-                <FiUser className="h-7 w-7 text-white" />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-lg">Welcome back, {user.name}! 👋</h3>
-                <p className="text-sm text-pink-500">
-                  {user.role === 'student' ? `${user.course} - ${user.college_name}` : `${user.speciality} - ${user.hospital_name}`}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button className="btn-ghost flex items-center space-x-2">
-                <FiUser className="h-4 w-4" />
-                <span>Profile</span>
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-2 px-4 py-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-300"
-              >
-                <FiLogOut className="h-4 w-4" />
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Hero Section */}
       <div className="text-center relative py-8">
         {/* Decorative elements */}
@@ -150,6 +112,37 @@ export default function HomePage() {
           )}
         </div>
       </div>
+  {/* Study Planner Quick View - Only for logged in users, show only 1 plan (latest) */}
+      {user && (
+        <div className="animate-slide-up animation-delay-100">
+          <StudyPlannerQuickView maxPlans={1} />
+        </div>
+      )}
+      {/* Generate Study Material CTA - Prominent for logged in users */}
+      {user && (
+        <div className="animate-slide-up animation-delay-50">
+          <Link
+            href="/study-buddy"
+            className="block bg-gradient-to-r from-pink-500 via-rose-500 to-fuchsia-500 rounded-2xl p-6 text-white hover:shadow-2xl hover:shadow-pink-300/50 hover:scale-[1.02] transition-all duration-300 group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <FiUpload className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Generate Study Material</h2>
+                  <p className="text-pink-100 text-sm">Upload PDFs, images & slides to create AI-powered study resources</p>
+                </div>
+              </div>
+              <div className="hidden sm:flex items-center space-x-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl">
+                <span className="font-medium">Start Now</span>
+                <FiArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* Features Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

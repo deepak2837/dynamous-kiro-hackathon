@@ -44,17 +44,22 @@ class ProcessingService:
     async def _read_file_content(self, file_path: str) -> str:
         """Read content from uploaded file"""
         try:
-            # For PDF files, extract text (simple approach)
+            # For PDF files, extract text using PyPDF2
             if file_path.lower().endswith('.pdf'):
-                # For now, return placeholder - in real implementation would extract PDF text
-                return f"Medical study content from PDF file: {os.path.basename(file_path)}"
+                import PyPDF2
+                text_content = []
+                with open(file_path, 'rb') as file:
+                    pdf_reader = PyPDF2.PdfReader(file)
+                    for page in pdf_reader.pages:
+                        text_content.append(page.extract_text())
+                return '\n'.join(text_content) if text_content else f"Could not extract text from PDF: {os.path.basename(file_path)}"
             else:
                 # For other files, read as text
                 with open(file_path, 'r', encoding='utf-8') as f:
                     return f.read()
         except Exception as e:
             logger.error(f"Failed to read file {file_path}: {e}")
-            return f"Medical content from file: {os.path.basename(file_path)}"
+            return f"Error reading file: {os.path.basename(file_path)}"
     
     async def _process_file_content_with_prompts(self, session_id: str, file_path: str, user_id: str):
         """Process file by sending it directly to AI model with prompts.
@@ -234,6 +239,18 @@ class ProcessingService:
             }
             await db.notes.insert_one(note)
             logger.info(f"📝 Created study notes")
+            
+            # Generate flashcards
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_FLASHCARDS, 
+                90, 
+                "Creating flashcards for spaced repetition..."
+            )
+            
+            # Read file content for flashcard generation
+            file_content = await self._read_file_content(file_path)
+            await self._generate_flashcards(session_id, user_id, file_content)
             
             # Mark as completed
             await ProgressTracker.update_progress(
@@ -761,6 +778,16 @@ class ProcessingService:
             await db.notes.insert_one(note.dict())
             logger.info(f"Stored notes for topic: {topic}")
             
+            # Generate flashcards
+            await ProgressTracker.update_progress(
+                session_id, 
+                ProcessingStep.GENERATING_FLASHCARDS, 
+                95, 
+                "Creating flashcards for spaced repetition..."
+            )
+            
+            await self._generate_flashcards(session_id, user_id, topic)
+            
             # Mark as completed
             await ProgressTracker.update_progress(
                 session_id, 
@@ -1072,3 +1099,37 @@ class ProcessingService:
             logger.info(f"Stored notes for session {session_id}")
         except Exception as e:
             logger.error(f"Failed to store notes: {str(e)}")
+    
+    async def _generate_flashcards(self, session_id: str, user_id: str, text: str):
+        """Generate flashcards from extracted text"""
+        try:
+            flashcards_data = await self.ai_service.generate_flashcards(text)
+            db = get_database()
+            
+            for f_data in flashcards_data:
+                flashcard = {
+                    "flashcard_id": str(uuid.uuid4()),
+                    "session_id": session_id,
+                    "user_id": user_id,
+                    "front_text": f_data["front"],
+                    "back_text": f_data["back"],
+                    "category": f_data["category"],
+                    "difficulty": f_data["difficulty"],
+                    "medical_topic": f_data.get("medical_topic"),
+                    "pronunciation": f_data.get("pronunciation"),
+                    "spaced_repetition_data": {
+                        "ease_factor": 2.5,
+                        "interval": 1,
+                        "repetitions": 0,
+                        "next_review_date": datetime.utcnow().isoformat(),
+                        "last_reviewed": None
+                    },
+                    "created_at": datetime.utcnow().isoformat()
+                }
+                
+                await db.flashcards.insert_one(flashcard)
+            
+            logger.info(f"Generated {len(flashcards_data)} flashcards for session {session_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to generate flashcards for session {session_id}: {str(e)}")

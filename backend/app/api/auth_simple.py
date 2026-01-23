@@ -19,8 +19,8 @@ security = HTTPBearer()
 limiter = Limiter(key_func=get_remote_address)
 
 # Use dependency injection for database connection
-async def get_db():
-    return await get_database()
+def get_db():
+    return get_database()
 
 def normalize_phone_number(phone: str) -> str:
     """Normalize phone number format"""
@@ -74,7 +74,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             detail="Invalid or expired token"
         )
     
-    db = await get_db()
+    db = get_db()
     user = await db.users.find_one({"_id": ObjectId(payload["user_id"])})
     if not user:
         raise HTTPException(
@@ -128,7 +128,7 @@ async def send_registration_otp(request: Request, otp_request: SendOTPRequest):
         
         # Check if user already exists
         db = get_db()
-        user = db.users.find_one({"mobile_number": mobile_number})
+        user = await db.users.find_one({"mobile_number": mobile_number})
         if user and user.get("verified", False):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -182,12 +182,16 @@ async def register_user(request: UserRegisterRequest):
     try:
         mobile_number = normalize_phone_number(request.mobile_number)
         
-        # For demo, skip OTP verification
-        # In production, verify OTP here
+        # Verify OTP before registration
+        if not OTPManager.verify_otp(mobile_number, request.otp):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired OTP"
+            )
         
         # Check if user already exists
         db = get_db()
-        user = db.users.find_one({"mobile_number": mobile_number})
+        user = await db.users.find_one({"mobile_number": mobile_number})
         if user and user.get("verified", False):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -214,7 +218,7 @@ async def register_user(request: UserRegisterRequest):
         }
         
         # Create user
-        result = db.users.insert_one(user_data)
+        result = await db.users.insert_one(user_data)
         if not result.inserted_id:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -222,7 +226,7 @@ async def register_user(request: UserRegisterRequest):
             )
         
         # Get created user
-        user = db.users.find_one({"_id": result.inserted_id})
+        user = await db.users.find_one({"_id": result.inserted_id})
         user_response = UserResponse(
             id=str(user["_id"]),
             name=user["name"],
@@ -261,16 +265,16 @@ async def register_user(request: UserRegisterRequest):
 async def login_user(request: Request, request_data: UserLoginRequest):
     """Login user with mobile number and password"""
     try:
-        mobile_number = normalize_phone_number(request.mobile_number)
+        mobile_number = normalize_phone_number(request_data.mobile_number)
         
         # Find user
         db = get_db()
-        user = db.users.find_one({
+        user = await db.users.find_one({
             "mobile_number": mobile_number,
             "verified": True
         })
         
-        if not user or not verify_password(request.password, user["password_hash"]):
+        if not user or not verify_password(request_data.password, user["password_hash"]):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid mobile number or password"
@@ -303,7 +307,7 @@ async def login_user(request: Request, request_data: UserLoginRequest):
     except HTTPException:
         raise
     except Exception as e:
-        error_logger.log_error(e, "login_user", additional_info={"mobile_number": request.mobile_number})
+        error_logger.log_error(e, "login_user", additional_info={"mobile_number": request_data.mobile_number})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error logging in: {str(e)}"

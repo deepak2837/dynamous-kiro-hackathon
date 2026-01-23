@@ -4,19 +4,19 @@ import re
 import base64
 import uuid
 from typing import Optional, List, Dict, Any, Union
-from datetime import datetime
+from datetime import datetime, timedelta
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from app.config import settings
-from app.models import DocumentType
+# from app.models import DocumentType
 
 logger = logging.getLogger(__name__)
 
 class AIService:
     def __init__(self):
         """Initialize AI service with Gemini API"""
-        self.api_key = settings.google_ai_api_key
-        if self.api_key and len(self.api_key) > 20:
+        self.api_key = settings.gemini_api_key
+        if self._is_valid_api_key(self.api_key):
             try:
                 genai.configure(api_key=self.api_key)
                 self.model = genai.GenerativeModel('gemini-2.0-flash')
@@ -29,6 +29,15 @@ class AIService:
         else:
             self.model = None
             logger.warning("AIService initialized without valid API key")
+    
+    def _is_valid_api_key(self, api_key: str) -> bool:
+        """Validate Google AI API key format"""
+        if not api_key:
+            return False
+        # Google AI API keys typically start with 'AIza' and are 39 characters long
+        import re
+        pattern = r'^AIza[0-9A-Za-z_-]{35}$'
+        return bool(re.match(pattern, api_key))
     
     def _test_api_connection(self):
         """Test API connection with a simple request"""
@@ -84,7 +93,7 @@ class AIService:
         
         return log_entry
 
-    async def detect_document_type(self, text: str) -> DocumentType:
+    async def detect_document_type(self, text: str) -> str:
         """Detect the type of document based on its content"""
         operation = "DETECT_DOCUMENT_TYPE"
         
@@ -106,15 +115,15 @@ Respond with only one of: CONTAINS_QUESTIONS, STUDY_NOTES, or MIXED"""
             self._log_ai_response(operation, response_text, True, {"detected_type": response_text})
             
             if "CONTAINS_QUESTIONS" in response_text:
-                return DocumentType.CONTAINS_QUESTIONS
+                return "contains_questions"
             elif "MIXED" in response_text:
-                return DocumentType.MIXED
+                return "mixed"
             else:
-                return DocumentType.STUDY_NOTES
+                return "study_notes"
         except Exception as e:
             self._log_ai_response(operation, str(e), False, {"error": str(e)})
             logger.error(f"Failed to detect document type: {str(e)}")
-            return DocumentType.STUDY_NOTES
+            return "study_notes"
 
     async def extract_existing_questions(self, text: str) -> List[Dict[str, Any]]:
         """Extract questions that already exist in the document"""
@@ -178,7 +187,7 @@ If no questions are found, return an empty array: []
         operation = "GENERATE_NEW_QUESTIONS"
         
         # Check if API key is configured
-        if not settings.google_ai_api_key or settings.google_ai_api_key == "your_api_key_here":
+        if not settings.gemini_api_key:
             logger.error("GEMINI_API_KEY not configured properly in .env file")
             raise Exception("AI service not configured - please set GEMINI_API_KEY in .env file")
         
@@ -261,7 +270,7 @@ CRITICAL: Questions must be directly derived from the provided text content. Do 
             from app.models import BatchContent
             
             # Generate questions (5 per batch to keep processing fast)
-            if document_type == DocumentType.CONTAINS_QUESTIONS:
+            if document_type == "contains_questions":
                 questions = await self.extract_existing_questions(batch_text)
             else:
                 questions = await self.generate_new_questions(batch_text, num_questions=5)
@@ -657,19 +666,19 @@ Make all content medically accurate and relevant for MBBS exams in India."""
                 {
                     "topic": topic,
                     "mnemonic": "AI service unavailable",
-                    "explanation": "Please check GEMINI_API_KEY configuration",
+                    "explanation": "Please check GOOGLE_AI_API_KEY configuration",
                     "key_terms": ["API", "configuration"]
                 }
             ],
             "cheat_sheet": {
                 "title": f"Cheat Sheet: {topic}",
                 "key_points": ["AI service unavailable - check configuration"],
-                "high_yield_facts": ["Please verify GEMINI_API_KEY in .env file"],
+                "high_yield_facts": ["Please verify GOOGLE_AI_API_KEY in .env file"],
                 "quick_references": {"Status": "Error - AI unavailable"}
             },
             "notes": {
                 "title": f"Study Notes: {topic}",
-                "content": "AI service encountered an error. Please check your GEMINI_API_KEY configuration in the .env file.",
+                "content": "AI service encountered an error. Please check your GOOGLE_AI_API_KEY configuration in the .env file.",
                 "summary_points": ["Check API configuration", "Restart backend service"]
             }
         }
@@ -962,15 +971,15 @@ Format as JSON array:
         questions = []
         for i in range(min(num_questions, 5)):
             questions.append({
-                "question": f"⚠️ FALLBACK: What is the main concept discussed in section {i+1}? (AI service failed - check GEMINI_API_KEY)",
+                "question": f"⚠️ FALLBACK: What is the main concept discussed in section {i+1}? (AI service failed - check GOOGLE_AI_API_KEY)",
                 "options": [
                     "AI service not configured properly", 
-                    "Check GEMINI_API_KEY in .env file", 
+                    "Check GOOGLE_AI_API_KEY in .env file", 
                     "Restart backend after fixing API key", 
                     "Contact support if issue persists"
                 ],
                 "correct_answer": 0,
-                "explanation": "This is a fallback question generated when AI processing failed. Please check your GEMINI_API_KEY configuration in the .env file.",
+                "explanation": "This is a fallback question generated when AI processing failed. Please check your GOOGLE_AI_API_KEY configuration in the .env file.",
                 "difficulty": "medium",
                 "topic": "Configuration Error"
             })
@@ -1343,7 +1352,7 @@ Generate {num_questions} questions now. ONLY return the JSON array:"""
         """Return fallback questions when AI fails."""
         return [
             {
-                "question": f"⚠️ FALLBACK: What is the main concept discussed in section 1? (AI service failed for {doc_type} - check GEMINI_API_KEY)",
+                "question": f"⚠️ FALLBACK: What is the main concept discussed in section 1? (AI service failed for {doc_type} - check GOOGLE_AI_API_KEY)",
                 "difficulty": "medium",
                 "topic": "Configuration Error",
                 "options": {
@@ -1353,7 +1362,7 @@ Generate {num_questions} questions now. ONLY return the JSON array:"""
                     "D": "Option D - Contact support"
                 },
                 "correct_answer": "B",
-                "explanation": f"This is a fallback question generated when AI processing failed for {doc_type}. Please check your GEMINI_API_KEY configuration in the .env file."
+                "explanation": f"This is a fallback question generated when AI processing failed for {doc_type}. Please check your GOOGLE_AI_API_KEY configuration in the .env file."
             }
         ]
 
@@ -1383,3 +1392,438 @@ Generate {num_questions} questions now. ONLY return the JSON array:"""
         })
         
         return result
+
+    async def generate_flashcards(self, text: str, num_cards: int = 20) -> List[Dict[str, Any]]:
+        """Generate medical flashcards from study content"""
+        operation = "GENERATE_FLASHCARDS"
+        
+        # Check if API key is configured
+        if not settings.gemini_api_key:
+            logger.error("GEMINI_API_KEY not configured properly in .env file")
+            raise Exception("AI service not configured - please set GEMINI_API_KEY in .env file")
+        
+        prompt = f"""Generate {num_cards} medical flashcards from this content for MBBS students.
+
+Focus on:
+- Medical terminology with pronunciations
+- Drug names, mechanisms, indications
+- Anatomy structures and functions
+- Clinical signs and symptoms
+- India-specific medical practices
+- High-yield facts for medical exams
+
+Format each flashcard as JSON:
+{{
+    "front": "Question or term (concise, clear)",
+    "back": "Answer or explanation (detailed but focused)", 
+    "category": "anatomy|pharmacology|pathology|physiology|clinical",
+    "difficulty": "easy|medium|hard",
+    "medical_topic": "specific topic area",
+    "pronunciation": "phonetic guide if medical term (optional)"
+}}
+
+Content: {text[:4000]}
+
+Return ONLY a valid JSON array of flashcards. No additional text."""
+
+        self._log_ai_request(operation, prompt, {
+            "num_cards": num_cards,
+            "content_length": len(text)
+        })
+
+        try:
+            if not self.model:
+                raise Exception("AI model not initialized")
+                
+            response = self.model.generate_content(prompt)
+            
+            if not response or not response.text:
+                raise Exception("Empty response from AI service")
+            
+            response_text = response.text.strip()
+            
+            # Clean up response - remove markdown formatting if present
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
+            
+            # Parse JSON response
+            try:
+                flashcards = json.loads(response_text)
+                if not isinstance(flashcards, list):
+                    raise ValueError("Response is not a list")
+                
+                # Validate and clean flashcards
+                validated_flashcards = []
+                for i, card in enumerate(flashcards):
+                    if not isinstance(card, dict):
+                        continue
+                    
+                    # Ensure required fields
+                    validated_card = {
+                        "front": str(card.get("front", f"Medical concept {i+1}")).strip(),
+                        "back": str(card.get("back", "Answer not provided")).strip(),
+                        "category": str(card.get("category", "clinical")).lower(),
+                        "difficulty": str(card.get("difficulty", "medium")).lower(),
+                        "medical_topic": str(card.get("medical_topic", "")).strip() if card.get("medical_topic") else None,
+                        "pronunciation": str(card.get("pronunciation", "")).strip() if card.get("pronunciation") else None
+                    }
+                    
+                    # Validate category
+                    valid_categories = ["anatomy", "pharmacology", "pathology", "physiology", "clinical"]
+                    if validated_card["category"] not in valid_categories:
+                        validated_card["category"] = "clinical"
+                    
+                    # Validate difficulty
+                    valid_difficulties = ["easy", "medium", "hard"]
+                    if validated_card["difficulty"] not in valid_difficulties:
+                        validated_card["difficulty"] = "medium"
+                    
+                    validated_flashcards.append(validated_card)
+                
+                self._log_ai_response(operation, f"Generated {len(validated_flashcards)} flashcards", True, {
+                    "flashcards_count": len(validated_flashcards)
+                })
+                
+                return validated_flashcards
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse flashcards JSON: {e}")
+                logger.error(f"Raw response: {response_text[:500]}")
+                raise Exception(f"Invalid JSON response from AI service: {str(e)}")
+                
+        except Exception as e:
+            self._log_ai_response(operation, str(e), False, {"error": str(e)})
+            logger.error(f"Failed to generate flashcards: {str(e)}")
+            
+            # Return fallback flashcards
+            return self._get_fallback_flashcards()
+    
+    def _get_fallback_flashcards(self) -> List[Dict[str, Any]]:
+        """Return fallback flashcards when AI fails"""
+        return [
+            {
+                "flashcard_id": str(uuid.uuid4()),
+                "front_text": "Sample Medical Question",
+                "back_text": "Sample Medical Answer",
+                "category": "general",
+                "difficulty": "medium",
+                "medical_topic": "General Medicine"
+            }
+        ]
+
+    async def generate_study_plan(self, session_content: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate AI-powered study plan based on session content and configuration"""
+        import asyncio
+        
+        try:
+            if not self.model:
+                return self._get_fallback_study_plan(config)
+            
+            # Add timeout to prevent long-running operations
+            timeout_seconds = 60  # 1 minute timeout
+            
+            async def _generate_with_timeout():
+                # Break into smaller tasks to avoid memory/timeout issues
+                plan_id = str(uuid.uuid4())
+                
+                # Step 1: Generate basic plan structure
+                basic_plan = await self._generate_basic_plan_structure(session_content, config, plan_id)
+                
+                # Step 2: Generate weekly schedules (instead of all days at once)
+                weekly_schedules = await self._generate_weekly_schedules(session_content, config, basic_plan)
+                
+                # Step 3: Combine results and convert to daily schedules
+                daily_schedules = []
+                try:
+                    day_counter = 1
+                    for week_data in weekly_schedules:
+                        for day_data in week_data.get("days", []):
+                            # Convert week/day format to daily schedule format
+                            daily_schedule = {
+                                "date": (datetime.now().date() + timedelta(days=day_counter-1)).isoformat(),
+                                "total_study_time": sum(task.get("duration", 0) for task in day_data.get("tasks", [])),
+                                "tasks": []
+                            }
+                            
+                            for task in day_data.get("tasks", []):
+                                # Map AI task types to valid enum values using mapping
+                                task_type = self._map_task_type(task.get("type", "study_notes"))
+                                
+                                daily_task = {
+                                    "title": task.get("title", "Study Task"),
+                                    "description": task.get("title", "Study Task"),
+                                    "task_type": task_type,
+                                    "subject": "general",
+                                    "estimated_duration": task.get("duration", 60),
+                                    "priority": 3,
+                                    "content_ids": []
+                                }
+                                daily_schedule["tasks"].append(daily_task)
+                            
+                            daily_schedules.append(daily_schedule)
+                            day_counter += 1
+                            
+                except Exception as conversion_error:
+                    logger.error(f"Error converting weekly to daily schedules: {conversion_error}")
+                    # Return fallback with basic structure
+                    daily_schedules = [{
+                        "date": datetime.now().date().isoformat(),
+                        "total_study_time": 360,
+                        "tasks": [{
+                            "title": "Study Session",
+                            "description": "Review study materials",
+                            "task_type": "study_notes",
+                            "subject": "general",
+                            "estimated_duration": 360,
+                            "priority": 3,
+                            "content_ids": []
+                        }]
+                    }]
+                
+                # Calculate ACTUAL values instead of using AI-generated ones
+                exam_date = config.get('exam_date')
+                if exam_date:
+                    if isinstance(exam_date, str):
+                        try:
+                            exam_date_parsed = datetime.fromisoformat(exam_date).date()
+                        except:
+                            exam_date_parsed = datetime.now().date() + timedelta(days=30)
+                    else:
+                        exam_date_parsed = exam_date
+                    actual_days = (exam_date_parsed - datetime.now().date()).days
+                    actual_days = max(1, actual_days)  # At least 1 day
+                else:
+                    actual_days = len(daily_schedules) if daily_schedules else 30
+                
+                # Calculate total hours from config
+                daily_hours = config.get('daily_study_hours', 6)
+                actual_hours = round(actual_days * daily_hours, 1)
+                
+                study_plan = {
+                    **basic_plan,
+                    "daily_schedules": daily_schedules,
+                    "total_study_days": actual_days,
+                    "total_study_hours": actual_hours,
+                    "status": "generated"
+                }
+                
+                return study_plan
+            
+            # Execute with timeout
+            try:
+                return await asyncio.wait_for(_generate_with_timeout(), timeout=timeout_seconds)
+            except asyncio.TimeoutError:
+                logger.error(f"Study plan generation timed out after {timeout_seconds} seconds")
+                return self._get_fallback_study_plan(config)
+                
+        except Exception as e:
+            logger.error(f"Error generating study plan: {e}")
+            return self._get_fallback_study_plan(config)
+    
+    def _map_task_type(self, ai_task_type: str) -> str:
+        """Map AI-generated task types to valid enum values"""
+        task_type_mapping = {
+            "study_notes": "study_notes",
+            "review_questions": "review_questions", 
+            "practice_questions": "review_questions",
+            "flashcards": "practice_flashcards",
+            "practice_flashcards": "practice_flashcards",
+            "cheat_sheet": "review_cheatsheet",
+            "review_cheatsheet": "review_cheatsheet",
+            "mock_test": "mock_test",
+            "test": "mock_test",
+            "revision": "revision",
+            "review": "revision"
+        }
+        
+        return task_type_mapping.get(ai_task_type.lower(), "study_notes")
+    
+    async def _generate_basic_plan_structure(self, session_content: Dict[str, Any], config: Dict[str, Any], plan_id: str) -> Dict[str, Any]:
+        """Generate basic plan structure without detailed schedules"""
+        try:
+            exam_date = config.get('exam_date', 'Not specified')
+            daily_hours = config.get('daily_study_hours', 6)
+            weak_areas = config.get('weak_areas', [])
+            
+            # Count available content
+            questions_count = len(session_content.get('questions', []))
+            notes_count = len(session_content.get('notes', []))
+            flashcards_count = len(session_content.get('flashcards', []))
+            cheatsheets_count = len(session_content.get('cheat_sheets', []))
+            
+            prompt = f"""
+            Create a basic study plan structure for medical exam preparation.
+            
+            AVAILABLE MATERIALS:
+            - Questions: {questions_count} items
+            - Study Notes: {notes_count} items  
+            - Flashcards: {flashcards_count} items
+            - Cheat Sheets: {cheatsheets_count} items
+            
+            CONFIG:
+            - Target Exam Date: {exam_date}
+            - Daily Study Hours: {daily_hours} hours
+            - Weak Areas: {', '.join(weak_areas) if weak_areas else 'None'}
+            
+            Return ONLY basic structure in JSON:
+            {{
+                "plan_id": "{plan_id}",
+                "total_study_days": number,
+                "subjects": ["anatomy", "physiology", "pathology"],
+                "study_phases": [
+                    {{
+                        "phase": "foundation",
+                        "duration_days": number,
+                        "focus": "basic concepts"
+                    }}
+                ],
+                "weekly_goals": ["goal1", "goal2"]
+            }}
+            
+            Keep response under 1000 characters.
+            """
+            
+            response = await self.call_gemini_with_retry(prompt)
+            if response:
+                return self.extract_json_from_response(response)
+            else:
+                return self._get_basic_fallback_plan(plan_id, config)
+                
+        except Exception as e:
+            logger.error(f"Error generating basic plan structure: {e}")
+            return self._get_basic_fallback_plan(plan_id, config)
+    
+    async def _generate_weekly_schedules(self, session_content: Dict[str, Any], config: Dict[str, Any], basic_plan: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate weekly schedules one week at a time"""
+        try:
+            total_days = basic_plan.get('total_study_days', 30)
+            weeks = (total_days + 6) // 7  # Round up to nearest week
+            weekly_schedules = []
+            
+            # Generate only first 2 weeks to avoid timeout
+            max_weeks = min(weeks, 2)
+            
+            for week_num in range(1, max_weeks + 1):
+                week_schedule = await self._generate_single_week_schedule(
+                    session_content, config, basic_plan, week_num
+                )
+                if week_schedule:
+                    weekly_schedules.append(week_schedule)
+            
+            return weekly_schedules
+            
+        except Exception as e:
+            logger.error(f"Error generating weekly schedules: {e}")
+            return []
+    
+    async def _generate_single_week_schedule(self, session_content: Dict[str, Any], config: Dict[str, Any], basic_plan: Dict[str, Any], week_num: int) -> Dict[str, Any]:
+        """Generate schedule for a single week"""
+        try:
+            daily_hours = config.get('daily_study_hours', 6)
+            subjects = basic_plan.get('subjects', ['general'])
+            
+            prompt = f"""
+            Create week {week_num} schedule for medical study plan.
+            
+            SUBJECTS: {', '.join(subjects)}
+            DAILY HOURS: {daily_hours}
+            
+            Return JSON for 7 days:
+            {{
+                "week": {week_num},
+                "days": [
+                    {{
+                        "day": 1,
+                        "tasks": [
+                            {{
+                                "title": "Review Anatomy",
+                                "duration": 120,
+                                "type": "study_notes"
+                            }}
+                        ]
+                    }}
+                ]
+            }}
+            
+            Keep response under 2000 characters.
+            """
+            
+            response = await self.call_gemini_with_retry(prompt)
+            if response:
+                return self.extract_json_from_response(response)
+            else:
+                return self._get_fallback_week_schedule(week_num, daily_hours)
+                
+        except Exception as e:
+            logger.error(f"Error generating week {week_num} schedule: {e}")
+            return self._get_fallback_week_schedule(week_num, daily_hours)
+    
+    def _get_basic_fallback_plan(self, plan_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Basic fallback plan structure"""
+        return {
+            "plan_id": plan_id,
+            "total_study_days": 30,
+            "subjects": ["anatomy", "physiology", "pathology", "pharmacology"],
+            "study_phases": [
+                {"phase": "foundation", "duration_days": 10, "focus": "basic concepts"},
+                {"phase": "practice", "duration_days": 15, "focus": "questions and application"},
+                {"phase": "revision", "duration_days": 5, "focus": "final review"}
+            ],
+            "weekly_goals": ["Complete foundation topics", "Practice questions daily"]
+        }
+    
+    def _get_fallback_week_schedule(self, week_num: int, daily_hours: int) -> Dict[str, Any]:
+        """Fallback week schedule"""
+        return {
+            "week": week_num,
+            "days": [
+                {
+                    "day": i,
+                    "tasks": [
+                        {
+                            "title": f"Study Session Day {i}",
+                            "duration": daily_hours * 60,
+                            "type": "study_notes"
+                        }
+                    ]
+                } for i in range(1, 8)
+            ]
+        }
+    
+    def _get_fallback_study_plan(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate fallback study plan when AI fails"""
+        plan_id = str(uuid.uuid4())
+        daily_hours = config.get('daily_study_hours', 6)
+        
+        return {
+            "plan_id": plan_id,
+            "total_study_days": 30,
+            "subjects": ["anatomy", "physiology", "pathology", "pharmacology"],
+            "study_phases": [
+                {"phase": "foundation", "duration_days": 10, "focus": "basic concepts"},
+                {"phase": "practice", "duration_days": 15, "focus": "questions and application"},
+                {"phase": "revision", "duration_days": 5, "focus": "final review"}
+            ],
+            "weekly_goals": ["Complete foundation topics", "Practice questions daily"],
+            "weekly_schedules": [
+                {
+                    "week": 1,
+                    "days": [
+                        {
+                            "day": i,
+                            "tasks": [
+                                {
+                                    "title": f"Study Session Day {i}",
+                                    "duration": daily_hours * 60,
+                                    "type": "study_notes"
+                                }
+                            ]
+                        } for i in range(1, 8)
+                    ]
+                }
+            ],
+            "status": "fallback"
+        }
