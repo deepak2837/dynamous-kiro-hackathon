@@ -16,7 +16,7 @@ class AIService:
     def __init__(self):
         """Initialize AI service with Gemini API"""
         self.api_key = settings.google_ai_api_key
-        if self.api_key and self.api_key != "your_api_key_here" and len(self.api_key) > 20:
+        if self.api_key and len(self.api_key) > 20:
             try:
                 genai.configure(api_key=self.api_key)
                 self.model = genai.GenerativeModel('gemini-2.0-flash')
