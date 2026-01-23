@@ -34,7 +34,7 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('auth_token');
       // Optionally redirect to login page
       if (typeof window !== 'undefined') {
-        window.location.href = '/auth';
+        window.location.href = '/login';
       }
     }
     return Promise.reject(error);
