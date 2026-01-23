@@ -12,12 +12,11 @@ class Settings(BaseSettings):
     database_name: str = os.getenv("DATABASE_NAME", "studybuddy")
     
     # CORS Configuration
-    allowed_origins: list = os.getenv("ALLOWED_ORIGINS", "https://study-material-generator.netlify.app,http://localhost:3000,http://localhost:3001").split(",")
+    allowed_origins: list = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
     
     # AI Service
-    google_ai_api_key: str = os.getenv("GEMINI_API_KEY", "")
-    genai_project_id: Optional[str] = os.getenv("GOOGLE_CLOUD_PROJECT_ID")
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
+    genai_project_id: Optional[str] = os.getenv("GOOGLE_CLOUD_PROJECT_ID")
     google_cloud_project_id: str = os.getenv("GOOGLE_CLOUD_PROJECT_ID", "")
     google_cloud_location: str = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
     google_application_credentials: str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
