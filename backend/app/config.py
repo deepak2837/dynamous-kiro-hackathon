@@ -12,11 +12,7 @@ class Settings(BaseSettings):
     database_name: str = os.getenv("DATABASE_NAME", "studybuddy")
     
     # CORS Configuration
-    allowed_origins: list = [
-        "https://study-material-generator.netlify.app",
-        "http://localhost:3000",
-        "http://localhost:3001"
-    ]
+    allowed_origins: list = os.getenv("ALLOWED_ORIGINS", "https://study-material-generator.netlify.app,http://localhost:3000,http://localhost:3001").split(",")
     
     # AI Service
     google_ai_api_key: str = os.getenv("GEMINI_API_KEY", "")
@@ -27,7 +23,7 @@ class Settings(BaseSettings):
     google_application_credentials: str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
     
     # Authentication
-    jwt_secret: str = os.getenv("JWT_SECRET_KEY") or os.getenv("JWT_SECRET")
+    jwt_secret: str = os.getenv("JWT_SECRET_KEY") or os.getenv("JWT_SECRET", "")
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
     jwt_expiry: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")) * 60  # 24 hours default
     
@@ -64,8 +60,6 @@ class Settings(BaseSettings):
     upload_cooldown_minutes: int = int(os.getenv("UPLOAD_COOLDOWN_MINUTES", "5"))
     enable_upload_restrictions: bool = os.getenv("ENABLE_UPLOAD_RESTRICTIONS", "true").lower() == "true"
     
-    # OCR Scripts
-    ocr_scripts_path: str = "/home/unknown/Documents/medgloss-data-extractorfiles"
     
     # API Configuration
     api_v1_str: str = "/api/v1"
@@ -83,8 +77,8 @@ class Settings(BaseSettings):
     aws_access_key_id: str = os.getenv("AWS_ACCESS_KEY_ID", "")
     aws_secret_access_key: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
     aws_region: str = os.getenv("AWS_REGION", "ap-south-1")
-    study_buddy_bucket_name: str = os.getenv("STUDY_BUDDY_BUCKET_NAME", "study-buddy-crud-bucket")
-    storage_mode: str = os.getenv("STORAGE", "LOCAL").upper()
+    study_buddy_bucket_name: str = os.getenv("STUDY_BUDDY_BUCKET_NAME", "")
+    storage_mode: str = os.getenv("STORAGE_MODE", "LOCAL").upper()
     
     # Legacy compatibility properties
     @property
