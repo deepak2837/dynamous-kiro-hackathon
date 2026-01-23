@@ -2,14 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from typing import List, Optional
 from bson import ObjectId
 from app.utils.error_logger import error_logger
+from app.database import get_database
 import jwt
 
 router = APIRouter(prefix="/api/v1/history", tags=["History"])
 
 def get_db():
-    from motor.motor_asyncio import AsyncIOMotorClient
-    client = AsyncIOMotorClient("mongodb://localhost:27017")
-    return client["studybuddy"]
+    return get_database()
 
 def get_user_id_from_token(authorization: Optional[str] = Header(None)) -> dict:
     """Extract user_id and mobile_number from JWT token"""
