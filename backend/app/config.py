@@ -9,7 +9,7 @@ load_dotenv()
 class Settings(BaseSettings):
     google_ai_api_key: str
     # Database
-    mongodb_url: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017/studybuddy")
+    mongodb_url: str = os.getenv("MONGODB_URL")
     database_name: str = os.getenv("DATABASE_NAME", "studybuddy")
     
     # CORS Configuration
