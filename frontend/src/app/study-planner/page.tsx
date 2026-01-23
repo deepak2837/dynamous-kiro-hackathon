@@ -13,7 +13,9 @@ export default function StudyPlannerPage() {
     const { user, isLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const sessionId = searchParams.get('sessionId') || 'user-plan'; // Use sessionId from URL or fallback to user-plan
+    const sessionIdFromUrl = searchParams.get('sessionId');
+    // For study planner, always use 'user-plan' unless a specific sessionId is provided
+    const [currentSessionId, setCurrentSessionId] = useState<string>('user-plan');
     const [showPlanForm, setShowPlanForm] = useState(false);
     const [planGenerating, setPlanGenerating] = useState(false);
     const [planExists, setPlanExists] = useState(false);
@@ -28,6 +30,13 @@ export default function StudyPlannerPage() {
             router.push('/login');
         }
     }, [user, isLoading, router]);
+
+    
+    useEffect(() => {
+        if (sessionIdFromUrl) {
+            setCurrentSessionId(sessionIdFromUrl);
+        }
+    }, [sessionIdFromUrl]);
 
     // Check if user has a study plan
     useEffect(() => {
@@ -62,8 +71,8 @@ export default function StudyPlannerPage() {
     const handlePlanFormSubmit = async (config: any) => {
         setPlanGenerating(true);
         try {
-            // Use the actual sessionId from URL params or fallback to 'user-plan'
-            await StudyBuddyAPI.generateStudyPlan(sessionId, config);
+            // Always use currentSessionId (which defaults to 'user-plan')
+            await StudyBuddyAPI.generateStudyPlan(currentSessionId, config);
             setShowPlanForm(false);
             setPlanExists(true);
             setSuccessMessage('Study plan created successfully! 🎉');
@@ -158,7 +167,7 @@ export default function StudyPlannerPage() {
             {planExists ? (
                 <div className="space-y-6">
                     {/* Study Plan Viewer - using actual sessionId from URL params */}
-                    <StudyPlannerViewer key={refreshKey} sessionId={sessionId} />
+                    <StudyPlannerViewer key={refreshKey} sessionId={currentSessionId} />
 
                     {/* Update/Create New Button */}
                     <div className="text-center py-4">

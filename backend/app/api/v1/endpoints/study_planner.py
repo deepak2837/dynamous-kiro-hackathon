@@ -28,23 +28,35 @@ async def generate_study_plan(
 ):
     """Generate AI-powered study plan for a session"""
     try:
-        # Fetch session content
-        session = await db.study_sessions.find_one({"session_id": request.session_id})
-        if not session:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Session not found"
-            )
-        
-        # Verify user owns the session
-        if session.get("user_id") != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
-        
-        # Gather session content
-        session_content = await _gather_session_content(db, request.session_id)
+        # Handle special case for "user-plan" - create a user-level plan without session dependency
+        if request.session_id == "user-plan":
+            # Create a user-level study plan without requiring a specific session
+            session_content = {
+                "questions": [],
+                "mock_tests": [],
+                "mnemonics": [],
+                "cheat_sheets": [],
+                "notes": [],
+                "flashcards": []
+            }
+        else:
+            # Fetch session content for session-based plans
+            session = await db.study_sessions.find_one({"session_id": request.session_id})
+            if not session:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Session not found"
+                )
+            
+            # Verify user owns the session
+            if session.get("user_id") != current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied"
+                )
+            
+            # Gather session content
+            session_content = await _gather_session_content(db, request.session_id)
         
         # Generate study plan using AI
         ai_service = AIService()
