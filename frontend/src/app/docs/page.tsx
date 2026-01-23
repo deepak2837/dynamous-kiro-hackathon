@@ -47,7 +47,8 @@ const DocsPage: React.FC = () => {
             <div className="prose prose-lg max-w-none markdown-container">
               <ReactMarkdown 
                 components={{
-                  code: ({node, inline, className, children, ...props}) => {
+                  code: ({node, className, children, ...props}: any) => {
+                    const inline = !className?.includes('language-');
                     return inline ? (
                       <code className="bg-pink-100 text-pink-800 px-1 py-0.5 rounded text-sm" {...props}>
                         {children}
