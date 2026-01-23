@@ -943,7 +943,7 @@ sequenceDiagram
 
 ```mermaid
 graph TD
-    subgraph "Frontend Components"
+    subgraph FrontendComponents[Frontend Components]
         A[App Layout] --> B[Auth Provider]
         B --> C[Dashboard]
         C --> D[Study Buddy Card]
@@ -962,7 +962,7 @@ graph TD
         C --> P[Session History]
     end
     
-    subgraph "Backend Services"
+    subgraph BackendServices[Backend Services]
         Q[FastAPI App] --> R[Auth Middleware]
         R --> S[Upload Handler]
         R --> T[History Handler]
@@ -975,13 +975,13 @@ graph TD
         Z --> Y
     end
     
-    subgraph "External Services"
+    subgraph ExternalServices[External Services]
         AA[Google Gemini]
         BB[OTP Service]
         CC[OCR Engine]
     end
     
-    subgraph "Database"
+    subgraph Database
         DD[(MongoDB)]
     end
     
@@ -1159,6 +1159,8 @@ Coming soon! Stay tuned for video walkthrough.
 ## 👨‍💻 Author
 
 <p align="center">
+  <strong>Deepak Yadav</strong>
+  <br/>
   Built with ❤️ for the <strong>Dynamous Kiro Hackathon 2026</strong>
 </p>
 
