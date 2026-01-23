@@ -1,7 +1,7 @@
 """
 Download endpoints for exporting study materials as PDFs.
 """
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTask
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import FileResponse
 import os
 import tempfile
@@ -18,6 +18,7 @@ ContentType = Literal["questions", "notes", "cheatsheet", "mnemonics"]
 async def download_content(
     content_type: ContentType,
     session_id: str,
+    background_tasks: BackgroundTasks,
     current_user = Depends(get_current_user)
 ):
     """Download study materials as PDF."""
@@ -37,12 +38,14 @@ async def download_content(
         else:
             raise ValueError("Invalid content type")
         
-        # Return file response with cleanup after sending
+        # Add cleanup task to run after response is sent
+        background_tasks.add_task(export_service.cleanup_temp_file, pdf_path)
+        
+        # Return file response
         return FileResponse(
             path=pdf_path,
             filename=filename,
-            media_type="application/pdf",
-            background=BackgroundTask(export_service.cleanup_temp_file, pdf_path)
+            media_type="application/pdf"
         )
         
     except ValueError as e:
