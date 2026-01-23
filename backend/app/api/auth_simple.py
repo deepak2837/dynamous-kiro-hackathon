@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
 import bcrypt
@@ -10,14 +10,17 @@ from app.auth_models_simple import *
 from app.services.otp_service import OTPService, OTPManager
 from app.config import settings
 from app.utils.error_logger import error_logger
+from app.database import get_database
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 security = HTTPBearer()
+limiter = Limiter(key_func=get_remote_address)
 
-# Simple database connection
-def get_db():
-    client = pymongo.MongoClient(settings.mongodb_url)
-    return client[settings.database_name]
+# Use dependency injection for database connection
+async def get_db():
+    return await get_database()
 
 def normalize_phone_number(phone: str) -> str:
     """Normalize phone number format"""
@@ -45,7 +48,7 @@ def generate_jwt_token(user_id: str, mobile_number: str) -> str:
     payload = {
         'user_id': user_id,
         'mobile_number': mobile_number,
-        'exp': datetime.utcnow() + timedelta(days=30),
+        'exp': datetime.utcnow() + timedelta(hours=24),  # 24 hours expiry
         'iat': datetime.utcnow()
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
@@ -71,8 +74,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             detail="Invalid or expired token"
         )
     
-    db = get_db()
-    user = db.users.find_one({"_id": ObjectId(payload["user_id"])})
+    db = await get_db()
+    user = await db.users.find_one({"_id": ObjectId(payload["user_id"])})
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -117,7 +120,8 @@ async def check_user_exists(request: UserExistsRequest):
         )
 
 @router.post("/send-otp", response_model=MessageResponse)
-async def send_registration_otp(otp_request: SendOTPRequest):
+@limiter.limit("5/minute")
+async def send_registration_otp(request: Request, otp_request: SendOTPRequest):
     """Send OTP for registration"""
     try:
         mobile_number = normalize_phone_number(otp_request.mobile_number)
@@ -253,7 +257,8 @@ async def register_user(request: UserRegisterRequest):
         )
 
 @router.post("/login", response_model=TokenResponse)
-async def login_user(request: UserLoginRequest):
+@limiter.limit("10/minute")
+async def login_user(request: Request, request_data: UserLoginRequest):
     """Login user with mobile number and password"""
     try:
         mobile_number = normalize_phone_number(request.mobile_number)

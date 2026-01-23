@@ -11,6 +11,13 @@ class Settings(BaseSettings):
     mongodb_url: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017/studybuddy")
     database_name: str = os.getenv("DATABASE_NAME", "studybuddy")
     
+    # CORS Configuration
+    allowed_origins: list = [
+        "https://study-material-generator.netlify.app",
+        "http://localhost:3000",
+        "http://localhost:3001"
+    ]
+    
     # AI Service
     google_ai_api_key: str = os.getenv("GEMINI_API_KEY", "")
     genai_project_id: Optional[str] = os.getenv("GOOGLE_CLOUD_PROJECT_ID")
@@ -20,9 +27,13 @@ class Settings(BaseSettings):
     google_application_credentials: str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
     
     # Authentication
-    jwt_secret: str = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+    jwt_secret: str = os.getenv("JWT_SECRET_KEY") or os.getenv("JWT_SECRET")
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
-    jwt_expiry: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")) * 60  # Convert to seconds
+    jwt_expiry: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")) * 60  # 24 hours default
+    
+    def model_post_init(self, __context) -> None:
+        if not self.jwt_secret or self.jwt_secret == "your-secret-key-change-in-production":
+            raise ValueError("JWT_SECRET_KEY environment variable is required and cannot be default value")
     
     # OTP Service Configuration
     default_otp_method: str = os.getenv("DEFAULT_OTP_METHOD", "sms")  # "sms" or "email"
@@ -41,7 +52,7 @@ class Settings(BaseSettings):
     
     # File Storage
     upload_dir: str = os.getenv("UPLOAD_DIR", "./uploads")
-    max_file_size: int = 52428800  # 50MB
+    max_file_size: int = int(os.getenv("MAX_FILE_SIZE", "52428800"))  # 50MB default
     max_images_per_upload: int = int(os.getenv("MAX_IMAGES_PER_UPLOAD", "25"))
     
     # File size limits (in bytes)
@@ -110,6 +121,6 @@ class Settings(BaseSettings):
     
     class Config:
         env_file = ".env"
-        extra = "allow"  # Allow extra fields from environment
+        extra = "forbid"  # Prevent typos in environment variables
 
 settings = Settings()

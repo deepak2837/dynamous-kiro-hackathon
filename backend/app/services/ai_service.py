@@ -16,13 +16,29 @@ class AIService:
     def __init__(self):
         """Initialize AI service with Gemini API"""
         self.api_key = settings.google_ai_api_key
-        if self.api_key and self.api_key != "your_api_key_here":
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-2.0-flash')
-            logger.info("AIService initialized with Gemini API")
+        if self.api_key and self.api_key != "your_api_key_here" and len(self.api_key) > 20:
+            try:
+                genai.configure(api_key=self.api_key)
+                self.model = genai.GenerativeModel('gemini-2.0-flash')
+                # Test API connection
+                self._test_api_connection()
+                logger.info("AIService initialized with Gemini API")
+            except Exception as e:
+                logger.error(f"Failed to initialize Gemini API: {e}")
+                self.model = None
         else:
             self.model = None
             logger.warning("AIService initialized without valid API key")
+    
+    def _test_api_connection(self):
+        """Test API connection with a simple request"""
+        try:
+            test_response = self.model.generate_content("Test")
+            if not test_response:
+                raise Exception("No response from API")
+        except Exception as e:
+            logger.error(f"API connection test failed: {e}")
+            raise Exception("Invalid API key or connection failed")
     
     def _log_ai_request(self, operation: str, prompt: str, additional_info: Dict[str, Any] = None):
         """Log AI request details"""
