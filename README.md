@@ -36,7 +36,7 @@
   <tr>
     <td align="center">
       <h3>🔐 Test Credentials</h3>
-      <code>Mobile: 7045024042</code> | <code>Password: test_password</code>
+      <code>Mobile: 1234567890</code> | <code>Password: test_password</code>
     </td>
   </tr>
 </table>
