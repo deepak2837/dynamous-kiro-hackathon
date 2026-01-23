@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import StudyPlannerViewer from '@/components/StudyPlannerViewer';
 import StudyPlanForm from '@/components/StudyPlanForm';
@@ -12,6 +12,8 @@ import Link from 'next/link';
 export default function StudyPlannerPage() {
     const { user, isLoading } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const sessionId = searchParams.get('sessionId') || 'user-plan'; // Use sessionId from URL or fallback to user-plan
     const [showPlanForm, setShowPlanForm] = useState(false);
     const [planGenerating, setPlanGenerating] = useState(false);
     const [planExists, setPlanExists] = useState(false);
@@ -60,8 +62,8 @@ export default function StudyPlannerPage() {
     const handlePlanFormSubmit = async (config: any) => {
         setPlanGenerating(true);
         try {
-            // Use 'user' as a special session_id to indicate user-level plan
-            await StudyBuddyAPI.generateStudyPlan('user-plan', config);
+            // Use the actual sessionId from URL params or fallback to 'user-plan'
+            await StudyBuddyAPI.generateStudyPlan(sessionId, config);
             setShowPlanForm(false);
             setPlanExists(true);
             setSuccessMessage('Study plan created successfully! 🎉');
@@ -155,8 +157,8 @@ export default function StudyPlannerPage() {
             {/* Main Content */}
             {planExists ? (
                 <div className="space-y-6">
-                    {/* Study Plan Viewer - using 'user-plan' as session ID for user-level plans */}
-                    <StudyPlannerViewer key={refreshKey} sessionId="user-plan" />
+                    {/* Study Plan Viewer - using actual sessionId from URL params */}
+                    <StudyPlannerViewer key={refreshKey} sessionId={sessionId} />
 
                     {/* Update/Create New Button */}
                     <div className="text-center py-4">
