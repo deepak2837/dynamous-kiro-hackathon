@@ -1,9 +1,8 @@
 """
 Download endpoints for exporting study materials as PDFs.
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTask
 from fastapi.responses import FileResponse
-from fastapi.background import BackgroundTask
 import os
 import tempfile
 from typing import Literal
