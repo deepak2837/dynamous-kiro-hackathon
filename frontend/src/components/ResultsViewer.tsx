@@ -8,6 +8,7 @@ import MockTestDialog from './MockTestDialog';
 import MockTestInterface from './MockTestInterface';
 import MockTestResults from './MockTestResults';
 import ExportButton from './ExportButton';
+import FlipFlashcard from './FlipFlashcard';
 import StudyPlanForm from './StudyPlanForm';
 import StudyPlannerViewer from './StudyPlannerViewer';
 import { FiLoader, FiPlay, FiClock, FiFileText, FiStar, FiLayers } from 'react-icons/fi';
@@ -31,7 +32,6 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
   // Flashcard study state
   const [studyMode, setStudyMode] = useState(false);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
-  const [showAnswer, setShowAnswer] = useState(false);
 
   // Study planner state
   const [showPlanForm, setShowPlanForm] = useState(false);
@@ -220,36 +220,27 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
   const handleStartFlashcardStudy = () => {
     setStudyMode(true);
     setCurrentFlashcardIndex(0);
-    setShowAnswer(false);
   };
 
   const handleNextFlashcard = () => {
     if (currentFlashcardIndex < flashcards.length - 1) {
       setCurrentFlashcardIndex(currentFlashcardIndex + 1);
-      setShowAnswer(false);
     } else {
       // End of study session
       setStudyMode(false);
       setCurrentFlashcardIndex(0);
-      setShowAnswer(false);
     }
   };
 
   const handlePreviousFlashcard = () => {
     if (currentFlashcardIndex > 0) {
       setCurrentFlashcardIndex(currentFlashcardIndex - 1);
-      setShowAnswer(false);
     }
-  };
-
-  const handleToggleAnswer = () => {
-    setShowAnswer(!showAnswer);
   };
 
   const handleExitFlashcardStudy = () => {
     setStudyMode(false);
     setCurrentFlashcardIndex(0);
-    setShowAnswer(false);
   };
 
   // Study planner handlers
@@ -823,55 +814,24 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
                 </div>
               </div>
 
-              {/* Front of card */}
-              <div className="bg-gradient-to-br from-pink-50 to-fuchsia-50 border-2 border-pink-200 rounded-2xl p-8 mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Question:</h3>
-                <p className="text-xl text-gray-900 leading-relaxed">
-                  {flashcards[currentFlashcardIndex].front_text}
-                </p>
-              </div>
+              {/* Flip Flashcard */}
+              <FlipFlashcard flashcard={flashcards[currentFlashcardIndex]} />
 
-              {/* Back of card (shown when answer is revealed) */}
-              {showAnswer && (
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-8 mb-6 animate-slide-up">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Answer:</h3>
-                  <p className="text-xl text-gray-900 leading-relaxed mb-4">
-                    {flashcards[currentFlashcardIndex].back_text}
-                  </p>
-                  {flashcards[currentFlashcardIndex].pronunciation && (
-                    <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                      <strong>Pronunciation:</strong> {flashcards[currentFlashcardIndex].pronunciation}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-col space-y-4">
-                {!showAnswer ? (
-                  <button
-                    onClick={handleToggleAnswer}
-                    className="w-full bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white py-4 rounded-xl font-medium hover:shadow-lg transition-all duration-300"
-                  >
-                    Show Answer
-                  </button>
-                ) : (
-                  <div className="flex space-x-4">
-                    <button
-                      onClick={handlePreviousFlashcard}
-                      disabled={currentFlashcardIndex === 0}
-                      className="flex-1 bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={handleNextFlashcard}
-                      className="flex-1 bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300"
-                    >
-                      {currentFlashcardIndex === flashcards.length - 1 ? 'Finish Study' : 'Next Card'}
-                    </button>
-                  </div>
-                )}
+              {/* Navigation Buttons */}
+              <div className="flex space-x-4 mb-6">
+                <button
+                  onClick={handlePreviousFlashcard}
+                  disabled={currentFlashcardIndex === 0}
+                  className="flex-1 bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={handleNextFlashcard}
+                  className="flex-1 bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300"
+                >
+                  {currentFlashcardIndex === flashcards.length - 1 ? 'Finish Study' : 'Next Card'}
+                </button>
               </div>
 
               {/* Progress Bar */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import StudyPlannerViewer from '@/components/StudyPlannerViewer';
@@ -9,7 +9,7 @@ import { StudyBuddyAPI } from '@/lib/studybuddy-api';
 import { FiCalendar, FiPlus, FiArrowLeft, FiRefreshCw } from 'react-icons/fi';
 import Link from 'next/link';
 
-export default function StudyPlannerPage() {
+function StudyPlannerContent() {
     const { user, isLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -228,5 +228,25 @@ export default function StudyPlannerPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function StudyPlannerPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="text-center">
+                    <div className="relative w-20 h-20 mx-auto mb-6">
+                        <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-fuchsia-500 rounded-full animate-ping opacity-30" />
+                        <div className="relative w-20 h-20 bg-gradient-to-r from-pink-500 to-fuchsia-500 rounded-full flex items-center justify-center">
+                            <FiCalendar className="w-10 h-10 text-white" />
+                        </div>
+                    </div>
+                    <p className="text-pink-600 font-medium animate-pulse">Loading Study Planner...</p>
+                </div>
+            </div>
+        }>
+            <StudyPlannerContent />
+        </Suspense>
     );
 }
