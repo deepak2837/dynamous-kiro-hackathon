@@ -25,6 +25,7 @@ import time
 
 from app.config import settings
 from app.database import connect_to_mongo, close_mongo_connection
+from app.cache import redis_manager  # Import Redis manager
 from app.api.auth_simple import router as auth_router
 from app.logging_config import logger
 from app.middleware.rate_limit import limiter, rate_limit_handler
@@ -37,6 +38,7 @@ async def lifespan(app: FastAPI):
     
     Handles:
     - Database connection initialization
+    - Redis connection (if enabled)
     - Upload directory creation
     - Graceful shutdown of connections
     
@@ -55,11 +57,15 @@ async def lifespan(app: FastAPI):
     # Connect to database
     await connect_to_mongo()
     
+    # Connect to Redis (if enabled)
+    await redis_manager.connect()
+    
     yield
     
     # Shutdown
     logger.info("Shutting down StudyBuddy API...")
     await close_mongo_connection()
+    await redis_manager.disconnect()
 
 app = FastAPI(
     title=settings.project_name,

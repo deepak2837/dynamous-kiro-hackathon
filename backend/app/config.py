@@ -99,7 +99,12 @@ class Settings(BaseSettings):
     # Gmail API Configuration (Alternative to SMTP)
     gmail_api_key: str = os.getenv("GMAIL_API_KEY", "")
     
-    # File Storage Configuration
+    # Redis Configuration (Optional)
+    ENABLE_REDIS_CACHE: bool = Field(default=False, env="ENABLE_REDIS_CACHE")
+    REDIS_URL: str = Field(default="redis://localhost:6379", env="REDIS_URL")
+    REDIS_DB: int = Field(default=0, env="REDIS_DB")
+    REDIS_PASSWORD: str = Field(default="", env="REDIS_PASSWORD")
+    REDIS_TIMEOUT: int = Field(default=5, env="REDIS_TIMEOUT")
     upload_dir: str = os.getenv("UPLOAD_DIR", "./uploads")
     max_file_size: int = int(os.getenv("MAX_FILE_SIZE", "52428800"))  # 50MB default
     max_images_per_upload: int = int(os.getenv("MAX_IMAGES_PER_UPLOAD", "25"))
