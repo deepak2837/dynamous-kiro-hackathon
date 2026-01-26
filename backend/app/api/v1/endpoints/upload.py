@@ -1,3 +1,27 @@
+"""
+Study Buddy App - File Upload API Endpoints
+
+This module handles file upload operations for the Study Buddy App,
+including file validation, storage, and processing initiation.
+
+Endpoints:
+- GET /file-limits: Retrieve file size limits
+- POST /: Upload files and start AI processing
+- GET /check-upload: Check upload restrictions
+
+Features:
+- Multi-format file support (PDF, images, PPTX)
+- File size and type validation
+- Upload rate limiting and restrictions
+- Async processing initiation
+- Progress tracking setup
+- S3 and local storage support
+
+Author: Study Buddy Team
+Created: January 2026
+License: MIT
+"""
+
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Body
 from typing import List
 import uuid
@@ -19,7 +43,23 @@ router = APIRouter()
 
 @router.get("/file-limits")
 async def get_file_limits():
-    """Get file size limits"""
+    """
+    Get file size limits for different file types.
+    
+    Returns file size limits and descriptions for PDF, image, and slide files
+    to help users understand upload constraints before attempting upload.
+    
+    Returns:
+        dict: File type limits with max sizes and descriptions
+        
+    Example:
+        GET /api/v1/upload/file-limits
+        Response: {
+            "pdf": {"max_size_mb": 50, "description": "PDF documents up to 50MB"},
+            "image": {"max_size_mb": 10, "description": "Images up to 10MB"},
+            "slide": {"max_size_mb": 100, "description": "Presentation files up to 100MB"}
+        }
+    """
     return {
         "pdf": {"max_size_mb": 50, "description": "PDF documents up to 50MB"},
         "image": {"max_size_mb": 10, "description": "Images up to 10MB"},
@@ -34,10 +74,40 @@ async def upload_files(
     user_id: str = Form("default_user"),  # Default user for testing
     db=Depends(get_database)
 ):
-    """Upload files and start processing"""
+    """
+    Upload medical study files and initiate AI processing.
     
-    # 🔴 SET BREAKPOINT ON THIS LINE - Request received from frontend
-    # Check upload restrictions
+    Accepts multiple files (PDF, images, PPTX) for medical content extraction
+    and AI-powered study material generation. Creates a new study session
+    and starts background processing.
+    
+    Args:
+        request: FastAPI request object
+        files: List of uploaded files (max 50MB each for PDF, 10MB for images, 100MB for slides)
+        processing_mode: AI processing mode (currently AI_ONLY)
+        user_id: Authenticated user identifier
+        db: Database connection dependency
+        
+    Returns:
+        UploadResponse: Session ID and upload confirmation
+        
+    Raises:
+        HTTPException 429: If upload rate limit exceeded
+        HTTPException 400: If files are invalid or too large
+        HTTPException 500: If processing initiation fails
+        
+    Example:
+        POST /api/v1/upload/
+        Content-Type: multipart/form-data
+        Files: anatomy_notes.pdf, physiology_slides.pptx
+        Response: {
+            "session_id": "uuid-123",
+            "message": "Files uploaded successfully",
+            "files_uploaded": 2
+        }
+    """
+    
+    # Check upload restrictions for rate limiting
     allowed, restriction_message, remaining_seconds = UploadRestrictionService.check_upload_allowed(user_id)
     if not allowed:
         raise HTTPException(

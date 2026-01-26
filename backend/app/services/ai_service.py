@@ -1,3 +1,23 @@
+"""
+Study Buddy App - AI Service Module
+
+This module provides AI-powered content generation for medical study materials
+using Google's Gemini API. It generates questions, mock tests, mnemonics,
+cheat sheets, notes, and flashcards specifically tailored for MBBS students.
+
+Key Features:
+- Medical question generation with explanations
+- India-specific mnemonic creation
+- High-yield fact extraction for cheat sheets
+- Comprehensive study note compilation
+- Flashcard generation with spaced repetition support
+- Robust error handling and fallback mechanisms
+
+Author: Study Buddy Team
+Created: January 2026
+License: MIT
+"""
+
 import logging
 import json
 import re
@@ -13,8 +33,24 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 class AIService:
+    """
+    AI service for generating medical study content using Google Gemini API.
+    
+    This service handles all AI-powered content generation for the Study Buddy App,
+    including questions, mock tests, mnemonics, cheat sheets, notes, and flashcards.
+    All content is optimized for MBBS exam preparation with India-specific context.
+    """
+    
     def __init__(self):
-        """Initialize AI service with Gemini API"""
+        """
+        Initialize AI service with Gemini API configuration.
+        
+        Sets up the Gemini model, validates API key, and tests connection.
+        Falls back gracefully if API is unavailable.
+        
+        Raises:
+            Exception: If API key is invalid or connection fails
+        """
         self.api_key = settings.gemini_api_key
         if self._is_valid_api_key(self.api_key):
             try:
@@ -31,7 +67,15 @@ class AIService:
             logger.warning("AIService initialized without valid API key")
     
     def _is_valid_api_key(self, api_key: str) -> bool:
-        """Validate Google AI API key format"""
+        """
+        Validate Google AI API key format.
+        
+        Args:
+            api_key: The API key to validate
+            
+        Returns:
+            bool: True if API key format is valid, False otherwise
+        """
         if not api_key:
             return False
         # Google AI API keys typically start with 'AIza' and are 39 characters long
@@ -40,7 +84,14 @@ class AIService:
         return bool(re.match(pattern, api_key))
     
     def _test_api_connection(self):
-        """Test API connection with a simple request"""
+        """
+        Test API connection with a simple request.
+        
+        Verifies that the API key is valid and the service is accessible.
+        
+        Raises:
+            Exception: If API connection test fails
+        """
         try:
             test_response = self.model.generate_content("Test")
             if not test_response:
@@ -1367,7 +1418,29 @@ Generate {num_questions} questions now. ONLY return the JSON array:"""
         ]
 
     async def generate_questions(self, content: str, doc_type: str = "STUDY_NOTES", num_questions: int = 15) -> List[Dict]:
-        """Main method to generate questions based on document type."""
+        """
+        Generate medical questions based on document type and content.
+        
+        Main entry point for question generation that routes to specialized
+        generators based on the document type (study notes, mnemonics, cheat sheets).
+        
+        Args:
+            content: Text content to generate questions from
+            doc_type: Type of document ("STUDY_NOTES", "MNEMONIC", "CHEAT_SHEET")
+            num_questions: Number of questions to generate (default: 15)
+            
+        Returns:
+            List[Dict]: Generated questions with options, answers, and explanations
+            
+        Example:
+            >>> questions = await ai_service.generate_questions(
+            ...     "Anatomy of the heart...", 
+            ...     "STUDY_NOTES", 
+            ...     10
+            ... )
+            >>> len(questions)
+            10
+        """
         operation = "GENERATE_QUESTIONS_BY_DOC_TYPE"
         logger.info(f"Generating questions for document type: {doc_type}")
         

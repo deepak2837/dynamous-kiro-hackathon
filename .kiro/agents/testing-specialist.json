@@ -1,0 +1,14 @@
+{
+  "name": "testing-specialist",
+  "description": "Testing specialist for comprehensive test strategy and quality assurance",
+  "prompt": "You are a QA and testing specialist for the Study Buddy App. You design test strategies, write automated tests, perform manual testing, and ensure quality across all features. You understand medical app testing requirements and user acceptance criteria.",
+  "tools": ["read", "write", "grep", "code", "execute_bash"],
+  "allowedTools": ["read", "write", "grep", "code", "execute_bash"],
+  "resources": [
+    "file://backend/tests/",
+    "file://frontend/src/",
+    "file://backend/app/",
+    "file://.kiro/steering/product.md"
+  ],
+  "model": "claude-sonnet-4"
+}

@@ -1,3 +1,21 @@
+"""
+Study Buddy App - FastAPI Backend Application
+
+This module initializes the FastAPI application for the Study Buddy App,
+an AI-powered study companion for medical students preparing for MBBS exams.
+
+The application provides:
+- Multi-format file upload (PDF, images, PPTX)
+- AI-powered content generation (questions, mock tests, mnemonics, cheat sheets, notes)
+- Session-based study material organization
+- Real-time processing status tracking
+- Export functionality for offline study
+
+Author: Study Buddy Team
+Created: January 2026
+License: MIT
+"""
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -14,6 +32,20 @@ from slowapi.errors import RateLimitExceeded
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    Application lifespan manager for startup and shutdown events.
+    
+    Handles:
+    - Database connection initialization
+    - Upload directory creation
+    - Graceful shutdown of connections
+    
+    Args:
+        app: FastAPI application instance
+        
+    Yields:
+        None: Application runs between startup and shutdown
+    """
     # Startup
     logger.info("Starting up StudyBuddy API...")
     
@@ -52,6 +84,19 @@ app.add_middleware(
 # Request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
+    """
+    HTTP request logging middleware.
+    
+    Logs all incoming requests and outgoing responses with timing information
+    for monitoring and debugging purposes.
+    
+    Args:
+        request: Incoming HTTP request
+        call_next: Next middleware/endpoint in the chain
+        
+    Returns:
+        Response: HTTP response with added timing headers
+    """
     start_time = time.time()
     
     # Log request
@@ -75,7 +120,21 @@ from app.auth_models_simple import UserLoginRequest, TokenResponse
 
 @app.post("/login", response_model=TokenResponse)
 async def login_compatibility(request: UserLoginRequest):
-    """Backward compatibility endpoint for /login"""
+    """
+    Backward compatibility endpoint for direct /login access.
+    
+    Provides compatibility with existing MedGloss authentication patterns
+    while maintaining the new /api/v1/auth/login structure.
+    
+    Args:
+        request: User login credentials (mobile and password)
+        
+    Returns:
+        TokenResponse: JWT access token and user information
+        
+    Raises:
+        HTTPException: If authentication fails
+    """
     return await auth_login_user(request)
 
 # Add v1 API router (includes text-input, upload, sessions, etc.)
@@ -100,6 +159,15 @@ app.include_router(questions_basic_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
+    """
+    Root endpoint providing API information.
+    
+    Returns basic information about the Study Buddy API including
+    version and documentation links.
+    
+    Returns:
+        dict: API metadata and status information
+    """
     return {
         "message": "StudyBuddy API is running!",
         "version": settings.version,
@@ -108,6 +176,15 @@ async def root():
 
 @app.get("/health")
 async def health_check():
+    """
+    Health check endpoint for monitoring and load balancers.
+    
+    Provides service health status for monitoring systems
+    and deployment health checks.
+    
+    Returns:
+        dict: Service health status and metadata
+    """
     return {
         "status": "healthy",
         "service": settings.project_name,

@@ -1,3 +1,30 @@
+"""
+Study Buddy App - Processing Service
+
+This module handles the core processing pipeline for converting uploaded
+medical study materials into AI-generated study content. Orchestrates
+file processing, AI content generation, and database storage.
+
+Key Features:
+- Async file processing pipeline
+- AI-powered content generation for medical materials
+- Progress tracking with real-time updates
+- Error handling and recovery mechanisms
+- Content aggregation and organization
+- Email notifications on completion
+- Support for multiple file formats (PDF, images, PPTX)
+
+The service processes medical study materials through multiple stages:
+1. File content extraction and analysis
+2. AI-powered content generation (questions, tests, mnemonics, etc.)
+3. Content aggregation and storage
+4. Progress tracking and user notification
+
+Author: Study Buddy Team
+Created: January 2026
+License: MIT
+"""
+
 import asyncio
 import uuid
 import logging
@@ -18,14 +45,52 @@ from app.utils.error_handler import ErrorHandler, RecoveryAction
 from app.logging_config import logger
 
 class ProcessingService:
+    """
+    Core processing service for medical study material conversion.
+    
+    Orchestrates the complete pipeline from file upload to AI-generated
+    study content, handling file processing, content generation, and
+    database storage for MBBS exam preparation materials.
+    
+    Attributes:
+        ai_service: AI content generation service
+        file_processor: File content extraction service
+        content_aggregator: Content organization service
+        mock_test_generator: Mock test creation service
+    """
+    
     def __init__(self):
+        """Initialize processing service with required components."""
         self.ai_service = AIService()
         self.file_processor = FileProcessor()
         self.content_aggregator = ContentAggregator()
         self.mock_test_generator = MockTestGenerator()
     
     async def start_processing(self, session_id: str, files: List[str], mode: ProcessingMode, user_id: str):
-        """Start processing files by sending actual file content to AI model"""
+        """
+        Start the complete processing pipeline for uploaded medical study files.
+        
+        Processes uploaded files through the AI pipeline to generate study materials
+        including questions, mock tests, mnemonics, cheat sheets, and notes.
+        Updates progress in real-time and handles errors gracefully.
+        
+        Args:
+            session_id: Unique session identifier
+            files: List of file paths to process
+            mode: Processing mode (AI_ONLY for medical content)
+            user_id: User identifier for the session
+            
+        Raises:
+            Exception: If processing fails at any stage
+            
+        Example:
+            >>> await processing_service.start_processing(
+            ...     "session-123", 
+            ...     ["anatomy.pdf", "physiology.pptx"], 
+            ...     ProcessingMode.AI_ONLY,
+            ...     "user-456"
+            ... )
+        """
         logger.info(f"🚀 Starting processing for session {session_id} with {len(files)} files")
         try:
             # Send file directly to AI model with prompts

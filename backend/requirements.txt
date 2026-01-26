@@ -1,27 +1,52 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pymongo==4.6.0
-motor==3.3.2
-python-multipart==0.0.6
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-celery==5.3.4
-PyPDF2==3.0.1
-Pillow==10.1.0
-opencv-python==4.8.1.78
-google-generativeai==0.3.2
-python-dotenv==1.0.0
-pydantic==2.5.0
-pydantic-settings==2.1.0
-PyJWT==2.8.0
-bcrypt==4.1.2
-email-validator==2.1.0
-requests==2.31.0
-aiohttp==3.9.1
-boto3==1.34.0
-botocore==1.34.0
-slowapi==0.1.9
-pytesseract==0.3.10
-pdf2image==1.16.3
-python-pptx==0.6.23
-reportlab==4.0.7
+# Study Buddy App - Backend Dependencies
+# AI-powered study companion for medical students
+# Python 3.10+ required
+
+# Core FastAPI framework and ASGI server
+fastapi==0.104.1                    # Modern, fast web framework for building APIs
+uvicorn[standard]==0.24.0           # ASGI server for running FastAPI applications
+
+# Database drivers for MongoDB
+pymongo==4.6.0                      # Synchronous MongoDB driver
+motor==3.3.2                        # Asynchronous MongoDB driver for FastAPI
+
+# HTTP and file handling
+python-multipart==0.0.6             # Support for multipart/form-data (file uploads)
+requests==2.31.0                    # HTTP library for external API calls
+aiohttp==3.9.1                      # Async HTTP client/server framework
+
+# Authentication and security
+python-jose[cryptography]==3.3.0    # JWT token handling with cryptographic support
+passlib[bcrypt]==1.7.4              # Password hashing library with bcrypt
+PyJWT==2.8.0                        # JSON Web Token implementation
+bcrypt==4.1.2                       # Password hashing algorithm
+email-validator==2.1.0              # Email address validation
+
+# Data validation and settings
+pydantic==2.5.0                     # Data validation using Python type annotations
+pydantic-settings==2.1.0            # Settings management with Pydantic
+python-dotenv==1.0.0                # Load environment variables from .env files
+
+# Background task processing
+celery==5.3.4                       # Distributed task queue for async processing
+
+# File processing libraries for medical documents
+PyPDF2==3.0.1                       # PDF text extraction and manipulation
+Pillow==10.1.0                      # Image processing library (PIL fork)
+opencv-python==4.8.1.78             # Computer vision library for image processing
+pytesseract==0.3.10                 # OCR (Optical Character Recognition) engine
+pdf2image==1.16.3                   # Convert PDF pages to images for OCR
+python-pptx==0.6.23                 # PowerPoint presentation file processing
+
+# AI and machine learning
+google-generativeai==0.3.2          # Google Gemini API for AI content generation
+
+# Cloud storage (optional)
+boto3==1.34.0                       # AWS SDK for Python (S3 file storage)
+botocore==1.34.0                    # Low-level AWS service access
+
+# API rate limiting and monitoring
+slowapi==0.1.9                      # Rate limiting middleware for FastAPI
+
+# PDF generation for exports
+reportlab==4.0.7                    # PDF generation library for study materials

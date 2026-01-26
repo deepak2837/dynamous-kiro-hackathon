@@ -1,32 +1,97 @@
+/**
+ * Study Buddy Authentication Context
+ * 
+ * Provides authentication state management and user session handling
+ * for the Study Buddy App. Manages login, registration, logout, and
+ * user data persistence across the application.
+ * 
+ * Features:
+ * - JWT token-based authentication
+ * - User session persistence in localStorage
+ * - OTP-based registration (SMS/Email)
+ * - Role-based user management (student, doctor, admin)
+ * - Medical education profile data (college, course, year)
+ * - Automatic token refresh and validation
+ * - Error logging and handling
+ * 
+ * @context AuthContext
+ * @provider AuthProvider
+ * @hook useAuth
+ * 
+ * @example
+ * ```tsx
+ * const { user, login, logout, isLoading } = useAuth();
+ * 
+ * // Login user
+ * const success = await login('9876543210', 'password');
+ * 
+ * // Check if user is authenticated
+ * if (user) {
+ *   console.log(`Welcome ${user.name}`);
+ * }
+ * ```
+ */
+
 "use client";
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ErrorLogger from '@/utils/errorLogger';
 
+/**
+ * User data structure for medical students and professionals
+ */
 interface User {
+  /** Unique user identifier */
   id: string;
+  /** Full name of the user */
   name: string;
+  /** Mobile number for authentication */
   mobile_number: string;
+  /** Email address (optional) */
   email?: string;
+  /** User role in the medical education system */
   role: 'student' | 'doctor' | 'admin';
+  /** Preferred OTP delivery method */
   otp_method: 'email' | 'sms';
+  /** Whether user has verified their account */
   verified: boolean;
+  
+  // Student-specific fields
+  /** Medical college name */
   college_name?: string;
+  /** Course (MBBS, MD, etc.) */
   course?: string;
+  /** Current year of study */
   year?: number;
+  /** Target exam (NEET, AIIMS, etc.) */
   exam_name?: string;
+  
+  // Doctor-specific fields
+  /** Hospital or clinic name */
   hospital_name?: string;
+  /** Medical speciality */
   speciality?: string;
+  /** Years of experience */
   experience?: string;
 }
 
+/**
+ * Authentication context interface
+ */
 interface AuthContextType {
+  /** Current authenticated user or null */
   user: User | null;
+  /** JWT authentication token */
   token: string | null;
+  /** Loading state for auth operations */
   isLoading: boolean;
+  /** Login with mobile and password */
   login: (mobile_number: string, password: string) => Promise<boolean>;
+  /** Register new user account */
   register: (userData: RegisterData) => Promise<boolean>;
+  /** Logout and clear session */
   logout: () => void;
+  /** Send OTP for registration */
   sendOTP: (mobile_number: string, otp_method: 'email' | 'sms', email?: string) => Promise<boolean>;
   verifyOTP: (mobile_number: string, otp: string) => Promise<boolean>;
   sendForgotPasswordOTP: (mobile_number: string, otp_method: 'email' | 'sms', email?: string) => Promise<boolean>;

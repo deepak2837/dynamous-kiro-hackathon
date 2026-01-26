@@ -1,3 +1,35 @@
+/**
+ * Study Buddy File Upload Component
+ * 
+ * Provides comprehensive file upload functionality for medical study materials.
+ * Supports drag-and-drop, file validation, processing mode selection, and
+ * topic-based content generation for MBBS exam preparation.
+ * 
+ * Features:
+ * - Multi-format file support (PDF, images, PPTX)
+ * - Drag-and-drop interface with visual feedback
+ * - File size and type validation
+ * - Processing mode selection (AI-only)
+ * - Topic-based text input mode
+ * - Email notification options
+ * - Upload restrictions and rate limiting
+ * - Real-time file preview and management
+ * 
+ * @component
+ * @param {FileUploadProps} props - Component props
+ * @param {Function} props.onUploadSuccess - Callback when upload succeeds
+ * @param {Function} props.onUploadError - Callback when upload fails
+ * @returns {JSX.Element} File upload interface with drag-and-drop zone
+ * 
+ * @example
+ * ```tsx
+ * <FileUpload
+ *   onUploadSuccess={(sessionId) => console.log('Uploaded:', sessionId)}
+ *   onUploadError={(error) => console.error('Error:', error)}
+ * />
+ * ```
+ */
+
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
@@ -7,11 +39,19 @@ import { StudyBuddyAPI } from '@/lib/studybuddy-api';
 import { useAuth } from '@/contexts/AuthContext';
 import { FiUploadCloud, FiFile, FiX, FiMail, FiEdit3, FiZap } from 'react-icons/fi';
 
+/**
+ * Props for the FileUpload component
+ */
 interface FileUploadProps {
+  /** Callback function called when upload succeeds with session ID */
   onUploadSuccess: (sessionId: string) => void;
+  /** Callback function called when upload fails with error message */
   onUploadError: (error: string) => void;
 }
 
+/**
+ * File size limits configuration from backend
+ */
 interface FileLimits {
   pdf: { max_size_mb: number; description: string };
   image: { max_size_mb: number; description: string };
@@ -38,7 +78,7 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
   // Get user ID from authenticated user
   const userId = user?.id || '';
 
-  // Don't render if no user
+  // Don't render if no user - show authentication prompt
   if (!user) {
     return (
       <div className="card text-center p-12">

@@ -1,3 +1,33 @@
+/**
+ * Study Buddy API Client
+ * 
+ * Centralized API client for all Study Buddy App backend communication.
+ * Provides type-safe methods for file upload, processing status, content retrieval,
+ * and session management for medical study materials.
+ * 
+ * Features:
+ * - File upload with processing mode selection
+ * - Real-time processing status tracking
+ * - Content retrieval (questions, tests, mnemonics, etc.)
+ * - Session history management
+ * - Flashcard study system integration
+ * - Export functionality
+ * 
+ * All methods return properly typed responses matching backend API contracts.
+ * 
+ * @example
+ * ```typescript
+ * // Upload files
+ * const response = await StudyBuddyAPI.uploadFiles(files, ProcessingMode.AI_ONLY, userId);
+ * 
+ * // Get processing status
+ * const status = await StudyBuddyAPI.getProcessingStatus(sessionId);
+ * 
+ * // Retrieve questions
+ * const questions = await StudyBuddyAPI.getQuestions(sessionId);
+ * ```
+ */
+
 import apiClient from './api';
 import {
   UploadResponse,
@@ -19,15 +49,24 @@ import {
 } from '@/types/api';
 
 export class StudyBuddyAPI {
-  // File Upload
+  // File Upload Operations
+  
+  /**
+   * Check if user is allowed to upload files (rate limiting check).
+   * 
+   * @param userId - User identifier
+   * @returns Upload restriction status and remaining cooldown time
+   */
   static async checkUploadAllowed(userId: string): Promise<UploadRestrictionResponse> {
     const response = await apiClient.get(`/upload/check-upload-allowed/${userId}`);
     return response.data;
   }
 
-  static async uploadFiles(
-    files: File[],
-    processingMode: ProcessingMode,
+  /**
+   * Upload medical study files for AI processing.
+   * 
+   * @param files - Array of files to upload (PDF, images, PPTX)
+   * @param processingMode - AI processing mode to use
     userId: string
   ): Promise<UploadResponse> {
     const formData = new FormData();

@@ -1,113 +1,28 @@
----
-description: Technical code review for quality and bugs that runs pre-commit
----
+# Code Review Prompt
 
-Perform technical code review on recently changed files.
+You are a senior developer reviewing code for the Study Buddy App. Analyze the provided code for:
 
-## Core Principles
+## Code Quality
+- **Readability**: Clear naming, structure, comments
+- **Maintainability**: DRY principle, modularity
+- **Performance**: Efficient algorithms, database queries
+- **Error Handling**: Proper exception management
 
-Review Philosophy:
+## Security Review
+- **Input Validation**: File uploads, user data
+- **Authentication**: JWT validation, user isolation
+- **Data Protection**: Sensitive information handling
+- **Rate Limiting**: API abuse prevention
 
-- Simplicity is the ultimate sophistication - every line should justify its existence
-- Code is read far more often than it's written - optimize for readability
-- The best code is often the code you don't write
-- Elegance emerges from clarity of intent and economy of expression
+## Medical App Specific
+- **Data Accuracy**: Medical content validation
+- **User Safety**: Error states, data loss prevention
+- **Compliance**: Medical data handling standards
+- **Accessibility**: Screen reader compatibility
 
-## What to Review
+## Suggestions
+- **Immediate Fixes**: Critical issues to address
+- **Improvements**: Code quality enhancements
+- **Best Practices**: Framework-specific recommendations
 
-Start by gathering codebase context to understand the codebase standards and patterns.
-
-Start by examining:
-
-- README.md
-- PRD.md if found
-- Key files in the /core module
-- Documented standards in the /docs directory
-
-After you have a good understanding
-
-Run these commands:
-
-```bash
-git status
-git diff HEAD
-git diff --stat HEAD
-```
-
-Then check the list of new files:
-
-```bash
-git ls-files --others --exclude-standard
-```
-
-Read each new file in its entirety. Read each changed file in its entirety (not just the diff) to understand full context.
-
-For each changed file or new file, analyze for:
-
-1. **Logic Errors**
-   - Off-by-one errors
-   - Incorrect conditionals
-   - Missing error handling
-   - Race conditions
-
-2. **Security Issues**
-   - SQL injection vulnerabilities
-   - XSS vulnerabilities
-   - Insecure data handling
-   - Exposed secrets or API keys
-
-3. **Performance Problems**
-   - N+1 queries
-   - Inefficient algorithms
-   - Memory leaks
-   - Unnecessary computations
-
-4. **Code Quality**
-   - Violations of DRY principle
-   - Overly complex functions
-   - Poor naming
-   - Missing type hints/annotations
-
-5. **Adherence to Codebase Standards and Existing Patterns**
-   - Adherence to standards documented in the /docs directory
-   - Linting, typing, and formatting standards
-   - Logging standards
-   - Testing standards
-
-## Verify Issues Are Real
-
-- Run specific tests for issues found
-- Confirm type errors are legitimate
-- Validate security concerns with context
-
-## Output Format
-
-Save a new file to `.agents/code-reviews/[appropriate-name].md`
-
-**Stats:**
-
-- Files Modified: 0
-- Files Added: 0
-- Files Deleted: 0
-- New lines: 0
-- Deleted lines: 0
-
-**For each issue found:**
-
-```
-severity: critical|high|medium|low
-file: path/to/file.py
-line: 42
-issue: [one-line description]
-detail: [explanation of why this is a problem]
-suggestion: [how to fix it]
-```
-
-If no issues found: "Code review passed. No technical issues detected."
-
-## Important
-
-- Be specific (line numbers, not vague complaints)
-- Focus on real bugs, not style
-- Suggest fixes, don't just complain
-- Flag security issues as CRITICAL
+Provide specific, actionable feedback with code examples where helpful.

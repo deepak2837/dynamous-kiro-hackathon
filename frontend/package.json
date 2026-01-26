@@ -2,12 +2,15 @@
   "name": "study-buddy-frontend",
   "version": "1.0.0",
   "private": true,
+  "description": "Study Buddy App - AI-powered study companion frontend for medical students",
+  "author": "Study Buddy Team",
+  "license": "MIT",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "test": "echo 'Frontend tests not implemented yet - skipping'"
+    "dev": "next dev # Start development server with hot reload for local development",
+    "build": "next build # Build production-ready application with optimizations",
+    "start": "next start # Start production server (requires build first)",
+    "lint": "next lint # Run ESLint for code quality checks",
+    "test": "echo 'Frontend tests not implemented yet - skipping' # Placeholder for future test implementation"
   },
   "dependencies": {
     "axios": "^1.6.5",
@@ -29,5 +32,18 @@
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "medical-education",
+    "ai-powered",
+    "study-companion",
+    "mbbs",
+    "nextjs",
+    "typescript",
+    "medical-students"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/study-buddy/frontend"
   }
 }

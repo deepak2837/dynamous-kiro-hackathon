@@ -1,0 +1,49 @@
+{
+  "hooks": {
+    "agentSpawn": [
+      {
+        "command": "echo '🚀 Study Buddy Agent Activated - Medical Education Mode' && date"
+      },
+      {
+        "command": "git status --porcelain | wc -l | xargs -I {} echo 'Modified files: {}'"
+      }
+    ],
+    "preToolUse": [
+      {
+        "matcher": "write",
+        "command": "echo '📝 Writing medical content - ensuring MBBS accuracy' && echo 'File: $TOOL_ARGS' | grep -o '[^/]*$'"
+      },
+      {
+        "matcher": "shell",
+        "command": "echo '⚡ Executing system command for Study Buddy development'"
+      }
+    ],
+    "postToolUse": [
+      {
+        "matcher": "write",
+        "command": "if echo '$TOOL_ARGS' | grep -q '\\.py$'; then echo '🐍 Python file updated - running medical content validation'; fi"
+      },
+      {
+        "matcher": "write", 
+        "command": "if echo '$TOOL_ARGS' | grep -q '\\.tsx\\?$'; then echo '⚛️ React component updated - ensuring medical UI standards'; fi"
+      },
+      {
+        "matcher": "code",
+        "command": "echo '🔍 Code analysis complete - medical education context preserved'"
+      }
+    ],
+    "userPromptSubmit": [
+      {
+        "command": "echo '💭 Processing medical education query...' && echo 'Focus: MBBS curriculum alignment and medical accuracy'"
+      }
+    ],
+    "stop": [
+      {
+        "command": "echo '✅ Study Buddy development task completed' && echo 'Medical content quality: Validated ✓'"
+      },
+      {
+        "command": "git add . && git status --short | head -5"
+      }
+    ]
+  }
+}

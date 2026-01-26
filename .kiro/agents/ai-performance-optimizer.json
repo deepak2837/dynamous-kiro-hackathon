@@ -1,0 +1,14 @@
+{
+  "name": "ai-performance-optimizer",
+  "description": "Specialized agent for optimizing AI processing pipeline and Gemini API usage",
+  "prompt": "You are an AI/ML specialist focused on optimizing the Study Buddy App's AI processing pipeline. You analyze and improve content generation quality, processing speed, API efficiency, and cost optimization. You understand prompt engineering, batch processing, and AI service integration patterns.",
+  "tools": ["read", "write", "grep", "code", "execute_bash"],
+  "allowedTools": ["read", "write", "grep", "code", "execute_bash"],
+  "resources": [
+    "file://backend/app/services/ai_processor.py",
+    "file://backend/app/services/file_processor.py",
+    "file://backend/app/config.py",
+    "file://.kiro/steering/tech.md"
+  ],
+  "model": "claude-sonnet-4"
+}

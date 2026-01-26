@@ -1,3 +1,31 @@
+/**
+ * Study Buddy Results Viewer Component
+ * 
+ * Comprehensive results display component for AI-generated medical study content.
+ * Provides tabbed interface for viewing questions, mock tests, mnemonics, cheat sheets,
+ * notes, flashcards, and study planner functionality.
+ * 
+ * Features:
+ * - Tabbed content organization with visual indicators
+ * - Interactive question viewer with difficulty filtering
+ * - Mock test interface with timer and scoring
+ * - Flashcard study mode with spaced repetition
+ * - Study planner integration for personalized schedules
+ * - Export functionality for offline study
+ * - Real-time content loading and error handling
+ * - Responsive design for mobile and desktop
+ * 
+ * @component
+ * @param {ResultsViewerProps} props - Component props
+ * @param {string} props.sessionId - Study session ID to load content for
+ * @returns {JSX.Element} Tabbed results viewer interface
+ * 
+ * @example
+ * ```tsx
+ * <ResultsViewer sessionId="session-123" />
+ * ```
+ */
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,13 +41,21 @@ import StudyPlanForm from './StudyPlanForm';
 import StudyPlannerViewer from './StudyPlannerViewer';
 import { FiLoader, FiPlay, FiClock, FiFileText, FiStar, FiLayers } from 'react-icons/fi';
 
+/**
+ * Props for the ResultsViewer component
+ */
 interface ResultsViewerProps {
+  /** Study session ID to load and display content for */
   sessionId: string;
 }
 
+/**
+ * Available content types in the results viewer
+ */
 type ContentType = 'questions' | 'mock-tests' | 'mnemonics' | 'cheat-sheets' | 'notes' | 'flashcards' | 'study-planner';
 
 export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
+  // Tab and content state
   const [activeTab, setActiveTab] = useState<ContentType>('questions');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [mockTests, setMockTests] = useState<MockTest[]>([]);
