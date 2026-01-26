@@ -39,8 +39,9 @@ export default function MockTestInterface({
     return () => clearInterval(timer);
   }, []);
 
-  // Fullscreen effect
+  // Fullscreen effect - creates secure testing environment
   useEffect(() => {
+    // Enter fullscreen mode for distraction-free testing
     const enterFullscreen = async () => {
       if (containerRef.current && document.documentElement.requestFullscreen) {
         try {
@@ -54,6 +55,7 @@ export default function MockTestInterface({
 
     enterFullscreen();
 
+    // Handle fullscreen exit - automatically exit test if user leaves fullscreen
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement) {
         setIsFullscreen(false);
@@ -63,7 +65,9 @@ export default function MockTestInterface({
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
 
+    // Prevent common cheating methods during test
     const preventActions = (e: KeyboardEvent) => {
+      // Block F12 (dev tools), Ctrl+Shift+I (inspect), Ctrl+U (view source), F5 (refresh)
       if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') ||
         (e.ctrlKey && e.key === 'u') || e.key === 'F5') {
         e.preventDefault();
@@ -71,8 +75,9 @@ export default function MockTestInterface({
     };
 
     document.addEventListener('keydown', preventActions);
-    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('contextmenu', (e) => e.preventDefault()); // Disable right-click
 
+    // Cleanup event listeners on component unmount
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('keydown', preventActions);

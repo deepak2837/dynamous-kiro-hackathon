@@ -362,26 +362,27 @@ class FileProcessor:
         })
         
         try:
-            # Create batches first
+            # Create batches first - divides large files into manageable chunks
             batches = self.create_batches(file_path, session_id)
             logger.info(f"Created {len(batches)} batches for AI extraction")
             
             file_ext = os.path.splitext(file_path)[1].lower()
             
             if file_ext == '.pdf':
-                # Convert PDF to images and process in batches
+                # Convert PDF to images and process in batches - AI works better with images
                 logger.info("Converting PDF to images for AI analysis...")
                 images = pdf2image.convert_from_path(file_path, dpi=150)
                 logger.info(f"Converted PDF to {len(images)} images")
                 
+                # Process each batch separately to manage memory usage
                 for batch in batches:
                     start_page, end_page = batch.page_range
-                    # Get images for this batch (0-indexed)
+                    # Get images for this batch (0-indexed conversion)
                     batch_images = images[start_page-1:end_page]
                     
                     logger.info(f"Processing batch {batch.batch_number}: {len(batch_images)} images")
                     
-                    # Save images temporarily
+                    # Save images temporarily for AI processing
                     temp_paths = []
                     for i, image in enumerate(batch_images):
                         temp_path = f"/tmp/batch_{batch.batch_id}_page_{start_page+i}.png"
@@ -389,26 +390,27 @@ class FileProcessor:
                         temp_paths.append(temp_path)
                         logger.info(f"Saved temp image: {temp_path}")
                     
-                    # Analyze with AI
+                    # Analyze with AI - send multiple images for context
                     batch_text = await self.ai_service.analyze_images(temp_paths)
                     batch.text_content = batch_text
                     
                     logger.info(f"AI analysis for batch {batch.batch_number}: {len(batch_text)} characters")
                     
-                    # Clean up temp files
+                    # Clean up temp files to prevent disk space issues
                     for temp_path in temp_paths:
                         if os.path.exists(temp_path):
                             os.remove(temp_path)
                             
             elif file_ext in ['.jpg', '.jpeg', '.png']:
-                # Single image - single batch
+                # Single image - single batch processing
                 text = await self._extract_image_with_ai(file_path)
                 batches[0].text_content = text
             elif file_ext in ['.pptx', '.ppt']:
-                # Extract text from presentation
+                # Extract text from presentation slides
                 text = await self._extract_pptx_text(file_path)
                 batches[0].text_content = text
             
+            # Log processing statistics for monitoring
             total_text = sum(len(b.text_content) for b in batches)
             self._log_operation("EXTRACT_TEXT_AI_BATCHED", {
                 "batches_processed": len(batches),
@@ -423,6 +425,7 @@ class FileProcessor:
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             
+            # Log error for debugging
             self._log_operation("EXTRACT_TEXT_AI_BATCHED", {
                 "error": str(e),
                 "success": False

@@ -136,10 +136,10 @@ class ProcessingService:
         try:
             import os
             
-            # Load prompts from files
+            # Load specialized prompts from files for different content types
             prompts_dir = os.path.join(os.path.dirname(__file__), "prompts")
             
-            # Read prompts
+            # Read prompts for different content generation tasks
             with open(os.path.join(prompts_dir, "file_upload_question_generation.txt"), 'r') as f:
                 question_prompt = f.read()
             with open(os.path.join(prompts_dir, "file_upload_content_analysis.txt"), 'r') as f:
@@ -149,7 +149,7 @@ class ProcessingService:
             
             db = get_database()
             
-            # Update progress: Starting file analysis
+            # Update progress: Starting file analysis - inform user of current step
             await ProgressTracker.update_progress(
                 session_id, 
                 ProcessingStep.AI_PROCESSING, 
@@ -159,7 +159,7 @@ class ProcessingService:
             
             logger.info(f"📄 Processing file: {file_path}")
             
-            # Generate questions by sending file to AI
+            # Generate questions by sending file to AI - core assessment content
             await ProgressTracker.update_progress(
                 session_id, 
                 ProcessingStep.GENERATING_QUESTIONS, 
@@ -167,10 +167,12 @@ class ProcessingService:
                 "Generating questions from file content..."
             )
             
+            # Send file directly to AI with question generation prompt
             questions_response = await self.ai_service.analyze_file_with_prompt(
                 file_path, 
                 f"{question_prompt}\n\nAnalyze the uploaded file and generate questions based on its content."
             )
+            # Extract structured JSON data from AI response
             questions_data = self.ai_service.extract_json_from_response(questions_response)
             if isinstance(questions_data, dict):
                 questions_data = questions_data.get("questions", [])
@@ -178,9 +180,10 @@ class ProcessingService:
             
             logger.info(f"📝 Generated {len(questions_data)} questions")
             
-            # Save questions and track for mock test
+            # Save questions and track for mock test creation
             stored_questions = []
             for q_data in questions_data:
+                # Structure question data for database storage
                 question = {
                     "question_id": str(uuid.uuid4()),
                     "session_id": session_id,
@@ -195,7 +198,7 @@ class ProcessingService:
                 await db.questions.insert_one(question)
                 stored_questions.append(question)
             
-            # Generate mock test from questions
+            # Generate mock test from questions - create timed assessment
             await ProgressTracker.update_progress(
                 session_id, 
                 ProcessingStep.GENERATING_MOCK_TESTS, 
@@ -203,13 +206,17 @@ class ProcessingService:
                 "Creating mock test from generated questions..."
             )
             
+            # Only create mock test if we have sufficient questions (minimum 5)
             if len(stored_questions) >= 5:
+                # Get session name for mock test title
                 session_data = await db.study_sessions.find_one({"session_id": session_id})
                 session_name = session_data.get("session_name", "Study Session") if session_data else "Study Session"
                 
+                # Calculate appropriate test duration based on question count
                 total_questions = len(stored_questions)
-                duration = max(15, min(90, int(total_questions * 1.5)))
+                duration = max(15, min(90, int(total_questions * 1.5)))  # 1.5 min per question, 15-90 min range
                 
+                # Create mock test structure
                 mock_test = {
                     "test_id": str(uuid.uuid4()),
                     "session_id": session_id,
@@ -222,7 +229,7 @@ class ProcessingService:
                 await db.mock_tests.insert_one(mock_test)
                 logger.info(f"📋 Created mock test with {total_questions} questions")
             
-            # Generate mnemonics by sending file to AI
+            # Generate mnemonics by sending file to AI - memory aids for retention
             await ProgressTracker.update_progress(
                 session_id, 
                 ProcessingStep.GENERATING_MNEMONICS, 
@@ -230,10 +237,12 @@ class ProcessingService:
                 "Creating mnemonics from file content..."
             )
             
+            # Send file to AI with mnemonic generation prompt
             mnemonics_response = await self.ai_service.analyze_file_with_prompt(
                 file_path, 
                 f"{mnemonic_prompt}\n\nAnalyze the uploaded file and create mnemonics based on its content."
             )
+            # Extract and structure mnemonic data
             mnemonics_data = self.ai_service.extract_json_from_response(mnemonics_response)
             if isinstance(mnemonics_data, dict):
                 mnemonics_data = mnemonics_data.get("mnemonics", [])
@@ -241,7 +250,7 @@ class ProcessingService:
             
             logger.info(f"🧠 Generated {len(mnemonics_data)} mnemonics")
             
-            # Save mnemonics
+            # Save mnemonics with structured data
             for m_data in mnemonics_data:
                 mnemonic = {
                     "mnemonic_id": str(uuid.uuid4()),

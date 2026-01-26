@@ -102,15 +102,21 @@ class AuthService:
     async def authenticate_user(self, mobile_number: str, password: str) -> Optional[UserResponse]:
         """Authenticate user with mobile number and password"""
         try:
+            # Normalize phone number to ensure consistent format (e.g., +91xxxxxxxxxx)
             mobile_number = self.normalize_phone_number(mobile_number)
+            
+            # Find user by mobile number and ensure they are verified
             user = self.users_collection.find_one({
                 "mobile_number": mobile_number,
-                "verified": True
+                "verified": True  # Only allow verified users to login
             })
             
+            # Verify password using bcrypt hash comparison
             if user and self.verify_password(password, user["password_hash"]):
+                # Convert database user document to response format
                 return self._user_to_response(user)
             
+            # Return None if user not found or password incorrect
             return None
             
         except Exception as e:

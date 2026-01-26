@@ -67,6 +67,11 @@ export class StudyBuddyAPI {
    * 
    * @param files - Array of files to upload (PDF, images, PPTX)
    * @param processingMode - AI processing mode to use
+   * @param userId - User identifier
+   */
+  static async uploadFiles(
+    files: File[],
+    processingMode: ProcessingMode,
     userId: string
   ): Promise<UploadResponse> {
     const formData = new FormData();

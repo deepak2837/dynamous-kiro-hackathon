@@ -140,6 +140,7 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
   // Check upload restrictions on component mount and periodically
   const checkUploadRestrictions = useCallback(async () => {
     try {
+      // Query backend for current upload restrictions (rate limiting, cooldowns)
       const response = await StudyBuddyAPI.checkUploadAllowed(userId);
       setUploadRestriction({
         allowed: response.upload_allowed,
@@ -147,6 +148,7 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
         remainingSeconds: response.remaining_seconds
       });
 
+      // If user is in cooldown period, start countdown timer
       if (response.remaining_seconds && response.remaining_seconds > 0) {
         setCountdown(response.remaining_seconds);
       }
@@ -159,9 +161,10 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
     checkUploadRestrictions();
   }, [checkUploadRestrictions]);
 
-  // Countdown timer
+  // Countdown timer for upload cooldown period
   useEffect(() => {
     if (countdown > 0) {
+      // Update countdown every second
       const timer = setInterval(() => {
         setCountdown(prev => {
           if (prev <= 1) {
@@ -176,6 +179,7 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
     }
   }, [countdown, checkUploadRestrictions]);
 
+  // Format countdown display (e.g., "2m 30s" or "45s")
   const formatCountdown = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -185,13 +189,15 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
     return `${remainingSeconds}s`;
   };
 
+  // Handle file drop from drag-and-drop interface
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
+    // Check if user is allowed to upload (not in cooldown)
     if (!uploadRestriction.allowed) {
       onUploadError(uploadRestriction.message || 'Upload not allowed at this time');
       return;
     }
 
-    // Handle rejected files
+    // Handle rejected files - show specific error messages
     if (rejectedFiles.length > 0) {
       const errors = rejectedFiles.map(({ file, errors }) => {
         const errorMessages = errors.map((e: any) => {
@@ -209,22 +215,23 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
       return;
     }
 
-    // Validate file sizes with specific limits
+    // Validate file sizes with specific limits per file type
     const validationErrors: string[] = [];
     const validFiles: File[] = [];
 
-    // Count images in new files
+    // Count images in new files to enforce image limit
     const newImageFiles = acceptedFiles.filter(file => {
       const ext = file.name.toLowerCase().split('.').pop();
       return ['jpg', 'jpeg', 'png'].includes(ext || '');
     });
 
-    // Count existing images
+    // Count existing images already selected
     const existingImages = files.filter(file => {
       const ext = file.name.toLowerCase().split('.').pop();
       return ['jpg', 'jpeg', 'png'].includes(ext || '');
     });
 
+    // Check total image count against backend limit
     const totalImages = existingImages.length + newImageFiles.length;
     const maxImages = 25; // From backend config
 
@@ -233,6 +240,7 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
       return;
     }
 
+    // Validate each file individually against size limits
     acceptedFiles.forEach(file => {
       const error = validateFileSize(file);
       if (error) {

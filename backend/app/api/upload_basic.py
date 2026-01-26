@@ -39,10 +39,10 @@ async def get_file_limits():
 async def process_files_background(session_id: str, files_data: List[dict]):
     """Background task to process uploaded files"""
     try:
-        # Update status to processing
+        # Update status to processing in memory storage
         session_storage[session_id]["status"] = "processing"
         
-        # Update database status
+        # Persist status change to database for reliability
         try:
             db = get_db()
             db.study_sessions.update_one(
@@ -52,13 +52,13 @@ async def process_files_background(session_id: str, files_data: List[dict]):
         except Exception as e:
             print(f"Error updating session status: {e}")
         
-        # Initialize AI Service
+        # Initialize AI Service for content generation
         ai_service = AIService()
         
         # Extract text from files (simplified for now - in production would use FileProcessor)
         all_text = ""
         for file_data in files_data:
-            # Get file path or content
+            # Get file path or content from uploaded file data
             file_path = file_data.get('path', '')
             filename = file_data.get('filename', '')
             
@@ -69,15 +69,17 @@ async def process_files_background(session_id: str, files_data: List[dict]):
         # Use real AI service to generate content
         user_id = session_storage[session_id].get("user_id", "unknown")
         try:
-            # Generate questions using AI
+            # Generate questions using AI - core study material generation
             questions_data = await ai_service.generate_questions(all_text, doc_type="STUDY_NOTES", num_questions=15)
             questions = []
             for i, q in enumerate(questions_data):
+                # Extract options from AI response, handling different formats
                 options_list = q.get("options", ["Option A", "Option B", "Option C", "Option D"])
-                # Ensure options is a list of strings
+                # Ensure options is a list of strings (AI might return dict format)
                 if options_list and isinstance(options_list[0], dict):
                     options_list = [o.get("text", f"Option {i}") for i, o in enumerate(options_list)]
                 
+                # Structure question data for database storage
                 question = {
                     "question_id": str(uuid.uuid4()),
                     "session_id": session_id,
@@ -91,10 +93,11 @@ async def process_files_background(session_id: str, files_data: List[dict]):
                 }
                 questions.append(question)
             
-            # Generate mnemonics using AI
+            # Generate mnemonics using AI - memory aids for better retention
             mnemonics_data = await ai_service.generate_mnemonics(all_text, num_mnemonics=5)
             mnemonics = []
             for m in mnemonics_data:
+                # Structure mnemonic data with topic and explanation
                 mnemonic = {
                     "mnemonic_id": str(uuid.uuid4()),
                     "mnemonic_text": m.get("mnemonic", ""),
@@ -103,10 +106,11 @@ async def process_files_background(session_id: str, files_data: List[dict]):
                 }
                 mnemonics.append(mnemonic)
             
-            # Generate cheat sheets using AI
+            # Generate cheat sheets using AI - high-yield summary content
             cheat_sheets_data = await ai_service.generate_cheat_sheets(all_text, num_sheets=2)
             cheat_sheets = []
             for cs in cheat_sheets_data:
+                # Structure cheat sheet with key points and quick facts
                 sheet = {
                     "sheet_id": str(uuid.uuid4()),
                     "topic": cs.get("title", "Study Sheet"),
@@ -117,16 +121,16 @@ async def process_files_background(session_id: str, files_data: List[dict]):
             
         except Exception as ai_error:
             print(f"AI service error: {ai_error}, using fallback questions")
-            # Fallback to mock data if AI fails
+            # Fallback to mock data if AI fails - ensures user always gets content
             questions = generate_questions(all_text)
             mnemonics = generate_mnemonics(all_text)
             cheat_sheets = generate_cheat_sheets(all_text)
         
-        # Generate mock tests from questions (no AI needed)
+        # Generate mock tests from questions (no AI needed) - creates timed assessments
         mock_tests = generate_mock_tests(questions)
         notes = generate_notes(all_text, questions, mnemonics)
         
-        # Store results in memory
+        # Store results in memory for immediate access
         session_storage[session_id].update({
             "status": "completed",
             "questions": questions,
@@ -137,11 +141,11 @@ async def process_files_background(session_id: str, files_data: List[dict]):
             "completed_at": datetime.utcnow().isoformat()
         })
         
-        # Store results in database
+        # Store results in database for persistence across sessions
         try:
             db = get_db()
             
-            # Update session status
+            # Update session status to completed with output flags
             db.study_sessions.update_one(
                 {"session_id": session_id},
                 {"$set": {
@@ -156,7 +160,7 @@ async def process_files_background(session_id: str, files_data: List[dict]):
                 }}
             )
             
-            # Store individual content items
+            # Store individual content items in their respective collections
             for question in questions:
                 question["session_id"] = session_id
                 db.questions.insert_one(question)
@@ -181,10 +185,11 @@ async def process_files_background(session_id: str, files_data: List[dict]):
             print(f"Error storing results in database: {e}")
         
     except Exception as e:
+        # Handle any processing failures gracefully
         session_storage[session_id]["status"] = "failed"
         session_storage[session_id]["error"] = str(e)
         
-        # Update database status
+        # Update database status to reflect failure
         try:
             db = get_db()
             db.study_sessions.update_one(

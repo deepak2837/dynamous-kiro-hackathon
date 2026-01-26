@@ -22,6 +22,7 @@ License: MIT
 
 import os
 from pydantic_settings import BaseSettings
+from pydantic import Field
 from typing import Optional
 from dotenv import load_dotenv
 

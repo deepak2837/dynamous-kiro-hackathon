@@ -55,7 +55,7 @@ interface ResultsViewerProps {
 type ContentType = 'questions' | 'mock-tests' | 'mnemonics' | 'cheat-sheets' | 'notes' | 'flashcards' | 'study-planner';
 
 export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
-  // Tab and content state
+  // Tab and content state management
   const [activeTab, setActiveTab] = useState<ContentType>('questions');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [mockTests, setMockTests] = useState<MockTest[]>([]);
@@ -65,17 +65,17 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Flashcard study state
+  // Flashcard study state - for spaced repetition system
   const [studyMode, setStudyMode] = useState(false);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
 
-  // Study planner state
+  // Study planner state - for AI-generated study schedules
   const [showPlanForm, setShowPlanForm] = useState(false);
   const [planGenerating, setPlanGenerating] = useState(false);
   const [studyPlanExists, setStudyPlanExists] = useState(false);
   const [planSuccessMessage, setPlanSuccessMessage] = useState<string | null>(null);
 
-  // Mock Test State
+  // Mock Test State - for timed assessments
   const [selectedTest, setSelectedTest] = useState<MockTest | null>(null);
   const [showTestDialog, setShowTestDialog] = useState(false);
   const [testMode, setTestMode] = useState(false);
@@ -86,14 +86,15 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
     totalTime: number;
   } | null>(null);
 
-  // Key to force StudyPlannerViewer to refresh
+  // Key to force StudyPlannerViewer to refresh after plan generation
   const [planRefreshKey, setPlanRefreshKey] = useState(0);
 
+  // Load content when tab changes or session changes
   useEffect(() => {
     loadContent(activeTab);
   }, [activeTab, sessionId]);
 
-  // Check if study plan exists
+  // Check if study plan exists for this session
   useEffect(() => {
     const checkPlanExists = async () => {
       try {
@@ -108,12 +109,14 @@ export default function ResultsViewer({ sessionId }: ResultsViewerProps) {
     checkPlanExists();
   }, [sessionId, planRefreshKey]);
 
+  // Load content based on selected tab - handles different data formats from API
   const loadContent = async (contentType: ContentType) => {
     setLoading(true);
     try {
       switch (contentType) {
         case 'questions':
           const questionsResponse = await StudyBuddyAPI.getSessionQuestions(sessionId);
+          // Handle different response formats from API
           const questionsData = Array.isArray(questionsResponse)
             ? questionsResponse
             : questionsResponse?.questions || questionsResponse || [];

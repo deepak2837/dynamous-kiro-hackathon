@@ -1592,39 +1592,43 @@ Return ONLY a valid JSON array of flashcards. No additional text."""
         import asyncio
         
         try:
+            # Check if AI model is available, fallback if not
             if not self.model:
                 return self._get_fallback_study_plan(config)
             
-            # Add timeout to prevent long-running operations
+            # Add timeout to prevent long-running operations that could hang
             timeout_seconds = 60  # 1 minute timeout
             
             async def _generate_with_timeout():
                 # Break into smaller tasks to avoid memory/timeout issues
                 plan_id = str(uuid.uuid4())
                 
-                # Step 1: Generate basic plan structure
+                # Step 1: Generate basic plan structure - foundation of the study plan
                 basic_plan = await self._generate_basic_plan_structure(session_content, config, plan_id)
                 
-                # Step 2: Generate weekly schedules (instead of all days at once)
+                # Step 2: Generate weekly schedules (instead of all days at once) - prevents memory overload
                 weekly_schedules = await self._generate_weekly_schedules(session_content, config, basic_plan)
                 
-                # Step 3: Combine results and convert to daily schedules
+                # Step 3: Combine results and convert to daily schedules - transform AI output to app format
                 daily_schedules = []
                 try:
                     day_counter = 1
+                    # Process each week's schedule and convert to daily format
                     for week_data in weekly_schedules:
                         for day_data in week_data.get("days", []):
-                            # Convert week/day format to daily schedule format
+                            # Convert week/day format to daily schedule format expected by frontend
                             daily_schedule = {
                                 "date": (datetime.now().date() + timedelta(days=day_counter-1)).isoformat(),
                                 "total_study_time": sum(task.get("duration", 0) for task in day_data.get("tasks", [])),
                                 "tasks": []
                             }
                             
+                            # Transform AI-generated tasks to app task format
                             for task in day_data.get("tasks", []):
-                                # Map AI task types to valid enum values using mapping
+                                # Map AI task types to valid enum values using mapping function
                                 task_type = self._map_task_type(task.get("type", "study_notes"))
                                 
+                                # Structure task data for frontend consumption
                                 daily_task = {
                                     "title": task.get("title", "Study Task"),
                                     "description": task.get("title", "Study Task"),
@@ -1641,7 +1645,7 @@ Return ONLY a valid JSON array of flashcards. No additional text."""
                             
                 except Exception as conversion_error:
                     logger.error(f"Error converting weekly to daily schedules: {conversion_error}")
-                    # Return fallback with basic structure
+                    # Return fallback with basic structure if conversion fails
                     daily_schedules = [{
                         "date": datetime.now().date().isoformat(),
                         "total_study_time": 360,
@@ -1656,9 +1660,10 @@ Return ONLY a valid JSON array of flashcards. No additional text."""
                         }]
                     }]
                 
-                # Calculate ACTUAL values instead of using AI-generated ones
+                # Calculate ACTUAL values instead of using AI-generated ones - ensures accuracy
                 exam_date = config.get('exam_date')
                 if exam_date:
+                    # Parse exam date from various formats
                     if isinstance(exam_date, str):
                         try:
                             exam_date_parsed = datetime.fromisoformat(exam_date).date()
@@ -1671,10 +1676,11 @@ Return ONLY a valid JSON array of flashcards. No additional text."""
                 else:
                     actual_days = len(daily_schedules) if daily_schedules else 30
                 
-                # Calculate total hours from config
+                # Calculate total hours from config - reliable calculation
                 daily_hours = config.get('daily_study_hours', 6)
                 actual_hours = round(actual_days * daily_hours, 1)
                 
+                # Combine all components into final study plan structure
                 study_plan = {
                     **basic_plan,
                     "daily_schedules": daily_schedules,
@@ -1685,7 +1691,7 @@ Return ONLY a valid JSON array of flashcards. No additional text."""
                 
                 return study_plan
             
-            # Execute with timeout
+            # Execute with timeout to prevent hanging
             try:
                 return await asyncio.wait_for(_generate_with_timeout(), timeout=timeout_seconds)
             except asyncio.TimeoutError:
