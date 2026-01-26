@@ -20,8 +20,6 @@ This comprehensive documentation suite covers every aspect of the Study Buddy Ap
 
 ### 🎓 Medical Education Features
 - **[Medical Content Generation](MEDICAL_CONTENT.md)** - AI-powered medical study materials
-- **[MBBS Curriculum Alignment](MBBS_ALIGNMENT.md)** - India-specific medical education features
-- **[Study Workflows](STUDY_WORKFLOWS.md)** - Medical student study patterns and optimization
 
 ### 🚀 Deployment & Operations
 - **[Setup Guide](SETUP_GUIDE.md)** - Complete installation and configuration
@@ -30,13 +28,6 @@ This comprehensive documentation suite covers every aspect of the Study Buddy Ap
 
 ### 🧪 Testing & Quality
 - **[Test Documentation](TEST_DOCUMENTATION.md)** - Testing strategies and implementation
-- **[Quality Assurance](QUALITY_ASSURANCE.md)** - Code quality and medical content validation
-- **[Performance Guide](PERFORMANCE.md)** - Optimization and scaling strategies
-
-### 🔐 Security & Compliance
-- **[Security Guide](SECURITY.md)** - Authentication, authorization, and data protection
-- **[Medical Data Compliance](COMPLIANCE.md)** - Medical education data handling standards
-- **[Privacy Policy](PRIVACY.md)** - User data protection and privacy measures
 
 ### 🎯 User Guides
 - **[User Manual](USER_MANUAL.md)** - Complete user guide for medical students
@@ -45,8 +36,35 @@ This comprehensive documentation suite covers every aspect of the Study Buddy Ap
 
 ### 🔄 Development & Maintenance
 - **[Development Guide](DEVELOPMENT_GUIDE.md)** - Developer onboarding and workflows
-- **[Contributing Guide](CONTRIBUTING.md)** - Contribution guidelines and standards
-- **[Maintenance Guide](MAINTENANCE.md)** - Ongoing maintenance and updates
+
+### 🏗️ Architecture & System Design
+- **[System Architecture](SYSTEM_ARCHITECTURE.md)** - Complete system design with Mermaid diagrams
+- **[Database Schema](DATABASE_SCHEMA.md)** - MongoDB collections and relationships
+- **[API Architecture](API_ARCHITECTURE.md)** - RESTful API design and endpoints
+
+### 🔧 Technical Documentation
+- **[Backend Documentation](BACKEND_DOCUMENTATION.md)** - FastAPI services and implementation
+- **[Frontend Documentation](FRONTEND_DOCUMENTATION.md)** - Next.js components and features
+- **[API Documentation](API_DOCUMENTATION.md)** - Complete API reference with examples
+
+### 🎓 Medical Education Features
+- **[Medical Content Generation](MEDICAL_CONTENT.md)** - AI-powered medical study materials
+
+### 🚀 Deployment & Operations
+- **[Setup Guide](SETUP_GUIDE.md)** - Complete installation and configuration
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Production deployment strategies
+- **[Configuration Reference](CONFIGURATION.md)** - Environment variables and settings
+
+### 🧪 Testing & Quality
+- **[Test Documentation](TEST_DOCUMENTATION.md)** - Testing strategies and implementation
+
+### 🎯 User Guides
+- **[User Manual](USER_MANUAL.md)** - Complete user guide for medical students
+- **[Feature Guide](FEATURE_GUIDE.md)** - Detailed feature explanations with examples
+- **[Troubleshooting](TROUBLESHOOTING.md)** - Common issues and solutions
+
+### 🔄 Development & Maintenance
+- **[Development Guide](DEVELOPMENT_GUIDE.md)** - Developer onboarding and workflows
 
 ---
 
@@ -71,7 +89,7 @@ This comprehensive documentation suite covers every aspect of the Study Buddy Ap
 
 ## 📊 Documentation Statistics
 
-- **Total Documentation Files**: 20+ comprehensive guides
+- **Total Documentation Files**: 17 comprehensive guides
 - **Code Coverage**: 100% of functions and components documented
 - **API Coverage**: All endpoints with request/response examples
 - **Medical Context**: MBBS-focused explanations throughout
